@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบสรุปรายงานยอดขายประจำวัน - Donut Shop Daily Report</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Sarabun & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Sarabun', 'Inter', 'sans-serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+                    },
+                    colors: {
+                        donut: {
+                            50: '#fffbe1',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            300: '#fcd34d',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                            800: '#92400e',
+                            900: '#78350f',
+                            accent: '#ea580c'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom UI Tweaks */
+        body {
+            background: linear-gradient(135deg, #fffcf0 0%, #fef3c7 50%, #fff7ed 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(251, 191, 36, 0.25);
+        }
+        textarea::-webkit-scrollbar {
+            width: 6px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #fffbe1;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #f59e0b;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="text-slate-800 pb-12 antialiased">
+
+    <!-- Top Toast Notification -->
+    <div id="toast" class="fixed top-5 right-5 z-50 transform translate-y-[-150%] transition-transform duration-300 ease-in-out bg-emerald-600 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 font-semibold text-sm">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        <span id="toastMsg">คัดลอกรายงานเรียบร้อยแล้ว!</span>
+    </div>
+
+    <!-- Modal Dialog (Replaces native alert/confirm) -->
+    <div id="modalOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-amber-200 transform transition-all">
+            <h3 id="modalTitle" class="text-xl font-bold text-slate-800 mb-2">ยืนยันการทำรายการ</h3>
+            <p id="modalBody" class="text-slate-600 text-sm mb-6">คุณต้องการทำรายการนี้ใช่หรือไม่?</p>
+            <div class="flex justify-end gap-3">
+                <button id="modalCancelBtn" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-sm transition">ยกเลิก</button>
+                <button id="modalConfirmBtn" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg text-sm shadow-md transition">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+
+        <!-- Header Bar -->
+        <header class="glass-card rounded-2xl p-5 mb-6 shadow-md flex flex-col md:flex-row items-center justify-between gap-4 border-b-4 border-amber-500">
+            <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 bg-gradient-to-tr from-amber-500 to-orange-400 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20 text-white">
+                    🍩
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-amber-900 leading-tight">Donut Shop Daily Report</h1>
+                    <p class="text-xs sm:text-sm text-amber-700 font-medium">ระบบคำนวณและสรุปรายงานยอดขายประจำวันอัตโนมัติ</p>
+                </div>
+            </div>
+
+            <!-- Quick Action Toolbar -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="loadSampleData()" class="px-3.5 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 font-semibold text-xs sm:text-sm rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                    <span>💡</span> ตัวอย่างข้อมูล
+                </button>
+                <button onclick="confirmReset()" class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs sm:text-sm rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                    <span>🔄</span> ล้างค่าวันนี้
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Layout Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- LEFT FORM COLUMN (7 cols) -->
+            <div class="lg:col-span-7 space-y-5">
+
+                <!-- Card 1: Sales & Transactions -->
+                <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-amber-100 pb-3">
+                        <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
+                            <span class="p-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm">💰</span>
+                            1. ยอดขายประจำวัน (Sales & Food)
+                        </h2>
+                        <span class="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium border border-amber-200">VAT 7% Auto Deduct</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">วันที่</label>
+                            <input type="date" id="dateInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Sub Total Sales (รวม VAT)</label>
+                            <input type="text" id="salesInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="เช่น 9442 หรือ 8000+1442">
+                            <p class="text-[11px] text-amber-700 mt-1 flex justify-between">
+                                <span>ถอด VAT (Net):</span>
+                                <span id="salesNetBadge" class="font-bold text-slate-900">0.00 ฿</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">ยอดขายอาหาร Sale Food (ข้อ 1 + 4 + 55 รวม VAT)</label>
+                        <input type="text" id="foodInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="เช่น 6246+1213+1094">
+                        <div class="flex justify-between items-center text-[11px] text-amber-700 mt-1">
+                            <span>* พิมพ์เครื่องหมาย + เชื่อมตัวเลขได้เลย</span>
+                            <span>Food Net: <strong id="foodNetBadge" class="font-bold text-slate-900">0.00 ฿</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 pt-1">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">TC (Transaction Count)</label>
+                            <input type="number" id="tcInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="64">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">TA (Ticket Average)</label>
+                            <input type="number" step="0.01" id="taInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="147.53">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Staffing & Labor COL -->
+                <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-amber-100 pb-3">
+                        <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
+                            <span class="p-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm">👤</span>
+                            2. บุคลากร & ค่าแรง (Staff & COL)
+                        </h2>
+                        <span class="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium border border-amber-200">FT 450฿/คน | PT 47฿/ชม.</span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">FT (คน)</label>
+                            <input type="number" id="ftInput" value="2" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">PT (คน)</label>
+                            <input type="number" id="ptCountInput" value="1" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">ชั่วโมง PT รวม</label>
+                            <input type="number" step="0.5" id="ptHoursInput" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="3">
+                        </div>
+                    </div>
+
+                    <div class="bg-amber-50/80 rounded-xl p-3 border border-amber-200 flex items-center justify-around text-xs font-semibold text-amber-900">
+                        <div>FTE รวม: <span id="fteBadge" class="text-amber-700 text-sm font-bold">0</span> คน</div>
+                        <div class="h-4 w-px bg-amber-300"></div>
+                        <div>ค่าแรง COL: <span id="colBahtBadge" class="text-amber-700 text-sm font-bold">0 ฿</span></div>
+                        <div class="h-4 w-px bg-amber-300"></div>
+                        <div>COL%: <span id="colPercentBadge" class="text-amber-700 text-sm font-bold">0.00%</span></div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Production & Wastage -->
+                <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-amber-100 pb-3">
+                        <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
+                            <span class="p-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm">🍩</span>
+                            3. ยอดผลิต & ของเสีย (Production & Waste)
+                        </h2>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">ผลิต (ชิ้น)</label>
+                            <input type="number" id="producedInput" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="379">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">ทิ้ง TW/pc (ชิ้น)</label>
+                            <input type="number" id="twPcInput" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="1">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">ทิ้ง TW/฿ (บาท)</label>
+                            <input type="number" step="0.01" id="twBahtInput" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="2.23">
+                        </div>
+                    </div>
+
+                    <div class="bg-amber-50/80 rounded-xl p-2.5 border border-amber-200 text-center text-xs font-semibold text-amber-900">
+                        อัตราของเสียวันนี้ (TW %): <span id="twPercentBadge" class="text-amber-700 text-sm font-bold">0.00%</span>
+                    </div>
+                </div>
+
+                <!-- Card 4: Monthly Accumulation (MTD) -->
+                <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-amber-100 pb-3">
+                        <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
+                            <span class="p-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm">🎯</span>
+                            4. ยอดสะสมประจำเดือน (MTD)
+                        </h2>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Sale Food MTD Gross (รวม VAT หรือพิมพ์บวกสะสม)</label>
+                            <input type="text" id="mtdSfInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="เช่น 89323+19357+23852">
+                            <p class="text-[11px] text-amber-700 mt-1 flex justify-between">
+                                <span>Sale Food MTD (ถอด VAT แล้ว):</span>
+                                <span id="mtdSfNetBadge" class="font-bold text-slate-900">0.00 ฿</span>
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">ยอดทิ้งสะสม TW/฿ MTD ของเมื่อวาน (บาท)</label>
+                            <input type="number" step="0.01" id="mtdTwPrevInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="803.61">
+                        </div>
+                    </div>
+
+                    <div class="bg-amber-100/70 rounded-xl p-3 border border-amber-300/60 flex items-center justify-between text-xs font-bold text-amber-950">
+                        <div>TW/฿ MTD รวมวันนี้: <span id="mtdTwTotalBadge" class="text-amber-800 text-sm">0.00 ฿</span></div>
+                        <div>TW (%) MTD: <span id="mtdTwPercentBadge" class="text-amber-800 text-sm">0.00%</span></div>
+                    </div>
+                </div>
+
+                <!-- NEW: Card 5: Camera & Watermark -->
+                <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4 border-2 border-amber-400">
+                    <div class="flex items-center justify-between border-b border-amber-100 pb-3">
+                        <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
+                            <span class="p-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm">📸</span>
+                            5. ถ่ายรูประบุสาขา (BC6)
+                        </h2>
+                    </div>
+                    
+                    <!-- Camera Container -->
+                    <div id="cameraSection" class="flex flex-col items-center gap-4">
+                        <button id="btnStartCamera" onclick="startCamera()" class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            เปิดกล้องถ่ายรูป (ระบุสาขา BC6)
+                        </button>
+                        
+                        <!-- Video Feed (Hidden initially) -->
+                        <div id="cameraContainer" class="hidden w-full space-y-3">
+                            <div class="relative w-full overflow-hidden rounded-xl bg-black border border-slate-300">
+                                <video id="cameraVideo" autoplay playsinline class="w-full object-cover max-h-[400px]"></video>
+                            </div>
+                            
+                            <div id="cameraControls" class="flex gap-2">
+                                <button onclick="toggleCamera()" class="flex-1 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-sm transition">
+                                    🔄 สลับกล้อง
+                                </button>
+                                <button onclick="capturePhoto()" class="flex-[2] py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-md text-sm transition">
+                                    📸 กดถ่ายรูป
+                                </button>
+                                <button onclick="stopCamera()" class="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-sm transition">
+                                    ❌ ปิด
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Captured Preview & Download (Hidden initially) -->
+                        <div id="previewContainer" class="hidden w-full space-y-4">
+                            <div class="text-center font-bold text-sm text-emerald-600">✅ ถ่ายรูปและฝังชื่อสาขาเรียบร้อย!</div>
+                            <img id="photoPreview" class="w-full rounded-xl border border-amber-300 shadow-md" />
+                            <canvas id="cameraCanvas" class="hidden"></canvas>
+                            
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <button onclick="retakePhoto()" class="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-sm transition">
+                                    ถ่ายใหม่
+                                </button>
+                                <button onclick="downloadPhoto()" class="flex-[2] py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md text-sm transition flex justify-center items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    บันทึกรูปลงเครื่อง
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT PREVIEW & ACTION COLUMN (5 cols) -->
+            <div class="lg:col-span-5 space-y-5 lg:sticky lg:top-6 self-start">
+
+                <!-- KPI Summary Badges -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white p-3.5 rounded-2xl border border-amber-200 shadow-sm flex flex-col justify-between">
+                        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">COL % (ค่าแรง)</span>
+                        <div id="kpiCol" class="text-2xl font-black text-amber-600 mt-1">0.00%</div>
+                        <span class="text-[10px] text-slate-400">เป้าหมาย &lt; 15%</span>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-2xl border border-amber-200 shadow-sm flex flex-col justify-between">
+                        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">TW % MTD (ทิ้งสะสม)</span>
+                        <div id="kpiMtdTw" class="text-2xl font-black text-emerald-600 mt-1">0.00%</div>
+                        <span class="text-[10px] text-slate-400">เป้าหมาย &lt; 1.0%</span>
+                    </div>
+                </div>
+
+                <!-- Final Output Box -->
+                <div class="glass-card rounded-2xl p-5 shadow-xl border-t-4 border-amber-600 flex flex-col space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <span>📋</span> ข้อความรายงานพร้อมส่ง
+                        </h2>
+                        <span class="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-md">พร้อมคัดลอก</span>
+                    </div>
+
+                    <textarea id="outputReport" readonly class="w-full h-[360px] p-4 bg-slate-900 text-amber-200 font-mono text-xs sm:text-sm rounded-xl border border-slate-700 shadow-inner focus:outline-none resize-none leading-relaxed select-all"></textarea>
+
+                    <!-- Copy & Rollover Buttons -->
+                    <div class="space-y-2.5">
+                        <button id="copyBtn" onclick="copyReport()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 transition flex items-center justify-center gap-2 text-base">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                            คัดลอกรายงาน (Copy Report)
+                        </button>
+
+                        <button onclick="confirmRollover()" class="w-full py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 border border-amber-300/80">
+                            <span>⏩</span> ยกยอดสะสม (MTD) ไปวันถัดไป
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Footer info -->
+                <p class="text-center text-xs text-amber-800/70 font-medium">
+                    🍩 Donut Daily Report Engine • Auto-Saved in Browser
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Modal Helper Logic
+        let modalConfirmCallback = null;
+
+        function showModal(title, body, onConfirm) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerText = body;
+            modalConfirmCallback = onConfirm;
+            document.getElementById('modalOverlay').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.add('hidden');
+            modalConfirmCallback = null;
+        }
+
+        document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
+        document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+            if (modalConfirmCallback) modalConfirmCallback();
+            closeModal();
+        });
+
+        // Toast Helper
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-y-[-150%]');
+            setTimeout(() => {
+                toast.classList.add('translate-y-[-150%]');
+            }, 2500);
+        }
+
+        // Safe Expression Evaluator for math inputs like "6246+1213+1094"
+        function parseMathString(str) {
+            if (!str) return 0;
+            if (typeof str === 'number') return isNaN(str) ? 0 : str;
+            try {
+                const cleaned = String(str).replace(/,/g, '').trim();
+                if (!cleaned) return 0;
+                return cleaned.split('+').reduce((sum, item) => {
+                    const val = parseFloat(item.trim());
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        // Number Formatter
+        function formatNum(num, decimals = 2) {
+            if (num === null || num === undefined || isNaN(num) || num === '') return '';
+            const n = Number(num);
+            return n.toLocaleString('en-US', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            });
+        }
+
+        // DOM Inputs
+        const dateInput = document.getElementById('dateInput');
+        const salesInput = document.getElementById('salesInput');
+        const foodInput = document.getElementById('foodInput');
+        const tcInput = document.getElementById('tcInput');
+        const taInput = document.getElementById('taInput');
+        const ftInput = document.getElementById('ftInput');
+        const ptCountInput = document.getElementById('ptCountInput');
+        const ptHoursInput = document.getElementById('ptHoursInput');
+        const producedInput = document.getElementById('producedInput');
+        const twPcInput = document.getElementById('twPcInput');
+        const twBahtInput = document.getElementById('twBahtInput');
+        const mtdSfInput = document.getElementById('mtdSfInput');
+        const mtdTwPrevInput = document.getElementById('mtdTwPrevInput');
+        const outputReport = document.getElementById('outputReport');
+
+        // Initializer
+        document.addEventListener("DOMContentLoaded", () => {
+            // Set Default Date to current date if empty
+            if (!dateInput.value) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                dateInput.value = `${yyyy}-${mm}-${dd}`;
+            }
+
+            // Restore from LocalStorage if exists
+            loadFromLocalStorage();
+
+            // Bind Event Listeners
+            const allInputs = [
+                dateInput, salesInput, foodInput, tcInput, taInput,
+                ftInput, ptCountInput, ptHoursInput, producedInput,
+                twPcInput, twBahtInput, mtdSfInput, mtdTwPrevInput
+            ];
+
+            allInputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    calculate();
+                    saveToLocalStorage();
+                });
+            });
+
+            calculate();
+        });
+
+        // Main Calculation Engine
+        function calculate() {
+            let formattedDate = '-';
+            if (dateInput.value) {
+                const parts = dateInput.value.split('-');
+                if (parts.length === 3) {
+                    formattedDate = `${parts[2]}/${parts[1]}/${parts[0].slice(-2)}`;
+                }
+            }
+
+            // 1. Sales & VAT Calculation
+            const salesGross = parseMathString(salesInput.value);
+            const salesNet = salesGross > 0 ? (salesGross / 1.07) : 0;
+
+            const foodGross = parseMathString(foodInput.value);
+            const foodNet = foodGross > 0 ? (foodGross / 1.07) : 0;
+
+            const tc = tcInput.value.trim();
+            const ta = parseFloat(taInput.value) || 0;
+
+            // Update Badges
+            document.getElementById('salesNetBadge').innerText = salesNet > 0 ? `${formatNum(salesNet, 2)} ฿` : '0.00 ฿';
+            document.getElementById('foodNetBadge').innerText = foodNet > 0 ? `${formatNum(foodNet, 2)} ฿` : '0.00 ฿';
+
+            // 2. Staffing & COL Calculation
+            const ftCount = parseFloat(ftInput.value) || 0;
+            const ptCount = parseFloat(ptCountInput.value) || 0;
+            const ptHours = parseFloat(ptHoursInput.value) || 0;
+
+            const fte = ftCount + ptCount;
+            const colBaht = (ftCount * 450) + (ptHours * 47);
+            const colPercent = salesNet > 0 ? (colBaht / salesNet) * 100 : 0;
+
+            document.getElementById('fteBadge').innerText = fte;
+            document.getElementById('colBahtBadge').innerText = `${formatNum(colBaht, 0)} ฿`;
+            document.getElementById('colPercentBadge').innerText = `${formatNum(colPercent, 2)}%`;
+            document.getElementById('kpiCol').innerText = `${formatNum(colPercent, 2)}%`;
+
+            // 3. Production & Wastage
+            const produced = producedInput.value.trim();
+            const twPc = twPcInput.value.trim();
+            const twBahtRaw = twBahtInput.value.trim();
+            const twBaht = parseFloat(twBahtRaw) || 0;
+            const twPercent = foodNet > 0 && twBaht > 0 ? (twBaht / foodNet) * 100 : 0;
+
+            document.getElementById('twPercentBadge').innerText = `${formatNum(twPercent, 2)}%`;
+
+            // 4. MTD Calculations
+            const mtdSfRaw = parseMathString(mtdSfInput.value);
+            const mtdSfNet = mtdSfRaw > 0 ? (mtdSfRaw / 1.07) : 0;
+
+            const mtdTwPrev = parseFloat(mtdTwPrevInput.value) || 0;
+            
+            let mtdTwTotal = 0;
+            if (mtdTwPrevInput.value.trim() !== '' || twBahtRaw !== '') {
+                mtdTwTotal = mtdTwPrev + twBaht;
+            }
+
+            const mtdTwPercent = mtdSfNet > 0 && mtdTwTotal > 0 ? (mtdTwTotal / mtdSfNet) * 100 : 0;
+
+            document.getElementById('mtdSfNetBadge').innerText = mtdSfNet > 0 ? `${formatNum(mtdSfNet, 2)} ฿` : '0.00 ฿';
+            document.getElementById('mtdTwTotalBadge').innerText = `${formatNum(mtdTwTotal, 2)} ฿`;
+            document.getElementById('mtdTwPercentBadge').innerText = `${formatNum(mtdTwPercent, 2)}%`;
+            document.getElementById('kpiMtdTw').innerText = `${formatNum(mtdTwPercent, 2)}%`;
+
+            // Formatted Text Output Template
+            const reportText = 
+`วันที่ =${formattedDate}
+💰Sales = ${salesInput.value.trim() ? formatNum(salesGross, 0) : ''} / ${salesNet ? formatNum(salesNet, 2) : ''}
+💸saleFood= ${foodNet ? formatNum(foodNet, 2) : ''}
+TC= ${tc}
+TA= ${ta ? formatNum(ta, 2) : ''}
+
+👤FTE= ${fte ? fte : ''}
+COL ฿ = ${colBaht ? formatNum(colBaht, 0) : ''}
+COL%= ${colPercent ? formatNum(colPercent, 2) + '%' : '%'}
+
+🍩ผลิต(pc)= ${produced}
+🚮TW/pc= ${twPc}
+💰TW/฿= ${twBahtRaw !== '' ? formatNum(twBaht, 2) : ''}
+📈Tw(%)= ${twPercent ? formatNum(twPercent, 2) + '%' : '%'}
+
+🎯Sale Food MTD= ${mtdSfNet ? formatNum(mtdSfNet, 2) : ''}
+TW/฿ MTD= ${mtdTwTotal ? formatNum(mtdTwTotal, 2) : ''}
+TW (%) MTD=${mtdTwPercent ? formatNum(mtdTwPercent, 2) + '%' : '%'}`;
+
+            outputReport.value = reportText;
+        }
+
+        // Copy Function
+        function copyReport() {
+            outputReport.select();
+            outputReport.setSelectionRange(0, 99999); // Mobile compatibility
+
+            try {
+                document.execCommand('copy');
+                showToast("คัดลอกรายงานเรียบร้อยแล้ว!");
+            } catch (err) {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(outputReport.value).then(() => {
+                        showToast("คัดลอกรายงานเรียบร้อยแล้ว!");
+                    });
+                }
+            }
+        }
+
+        // Load Sample Preset (14/09/26)
+        function loadSampleData() {
+            dateInput.value = "2026-09-14";
+            salesInput.value = "9442";
+            foodInput.value = "6246+1213+1094";
+            tcInput.value = "64";
+            taInput.value = "147.53";
+            ftInput.value = "2";
+            ptCountInput.value = "1";
+            ptHoursInput.value = "3";
+            producedInput.value = "379";
+            twPcInput.value = "1";
+            twBahtInput.value = "2.23";
+            mtdSfInput.value = "89323+19357+23852";
+            mtdTwPrevInput.value = "803.61";
+
+            calculate();
+            saveToLocalStorage();
+            showToast("โหลดข้อมูลตัวอย่างเรียบร้อย!");
+        }
+
+        // Confirm & Reset
+        function confirmReset() {
+            showModal(
+                "ล้างข้อมูลวันนี้?",
+                "คุณต้องการล้างข้อมูลการขายประจำวันนี้หรือไม่? (ยอดสะสม MTD จะยังคงอยู่)",
+                () => {
+                    salesInput.value = "";
+                    foodInput.value = "";
+                    tcInput.value = "";
+                    taInput.value = "";
+                    producedInput.value = "";
+                    twPcInput.value = "";
+                    twBahtInput.value = "";
+
+                    calculate();
+                    saveToLocalStorage();
+                    showToast("ล้างข้อมูลเรียบร้อยแล้ว");
+                }
+            );
+        }
+
+        // Rollover to Next Day
+        function confirmRollover() {
+            showModal(
+                "ยกยอดสะสม (MTD) ไปวันถัดไป?",
+                "ระบบจะนำยอดทิ้งสะสมวันนี้ไปตั้งเป็นยอดเมื่อวานของวันถัดไป และบวกยอดขายอาหารสะสมให้พร้อมเริ่มวันใหม่ คุณต้องการดำเนินการต่อหรือไม่?",
+                () => {
+                    // Calculate current totals
+                    const foodGrossToday = parseMathString(foodInput.value);
+                    const mtdSfRawPrev = parseMathString(mtdSfInput.value);
+                    const newMtdSfRaw = mtdSfRawPrev + foodGrossToday;
+
+                    const twBahtToday = parseFloat(twBahtInput.value) || 0;
+                    const mtdTwPrev = parseFloat(mtdTwPrevInput.value) || 0;
+                    const newMtdTwTotal = mtdTwPrev + twBahtToday;
+
+                    // Increment Date by 1 day
+                    if (dateInput.value) {
+                        const currentDate = new Date(dateInput.value);
+                        currentDate.setDate(currentDate.getDate() + 1);
+                        const nextY = currentDate.getFullYear();
+                        const nextM = String(currentDate.getMonth() + 1).padStart(2, '0');
+                        const nextD = String(currentDate.getDate()).padStart(2, '0');
+                        dateInput.value = `${nextY}-${nextM}-${nextD}`;
+                    }
+
+                    // Set Rolled over values
+                    mtdSfInput.value = newMtdSfRaw > 0 ? newMtdSfRaw.toFixed(2) : "";
+                    mtdTwPrevInput.value = newMtdTwTotal > 0 ? newMtdTwTotal.toFixed(2) : "";
+
+                    // Reset today's inputs
+                    salesInput.value = "";
+                    foodInput.value = "";
+                    tcInput.value = "";
+                    taInput.value = "";
+                    producedInput.value = "";
+                    twPcInput.value = "";
+                    twBahtInput.value = "";
+
+                    calculate();
+                    saveToLocalStorage();
+                    showToast("ยกยอด MTD ไปวันถัดไปเรียบร้อยแล้ว!");
+                }
+            );
+        }
+
+        // LocalStorage Save & Load
+        function saveToLocalStorage() {
+            const data = {
+                date: dateInput.value,
+                sales: salesInput.value,
+                food: foodInput.value,
+                tc: tcInput.value,
+                ta: taInput.value,
+                ft: ftInput.value,
+                ptCount: ptCountInput.value,
+                ptHours: ptHoursInput.value,
+                produced: producedInput.value,
+                twPc: twPcInput.value,
+                twBaht: twBahtInput.value,
+                mtdSf: mtdSfInput.value,
+                mtdTwPrev: mtdTwPrevInput.value
+            };
+            localStorage.setItem('donut_report_data', JSON.stringify(data));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('donut_report_data');
+            if (!saved) return;
+            try {
+                const data = JSON.parse(saved);
+                if (data.date) dateInput.value = data.date;
+                if (data.sales !== undefined) salesInput.value = data.sales;
+                if (data.food !== undefined) foodInput.value = data.food;
+                if (data.tc !== undefined) tcInput.value = data.tc;
+                if (data.ta !== undefined) taInput.value = data.ta;
+                if (data.ft !== undefined) ftInput.value = data.ft;
+                if (data.ptCount !== undefined) ptCountInput.value = data.ptCount;
+                if (data.ptHours !== undefined) ptHoursInput.value = data.ptHours;
+                if (data.produced !== undefined) producedInput.value = data.produced;
+                if (data.twPc !== undefined) twPcInput.value = data.twPc;
+                if (data.twBaht !== undefined) twBahtInput.value = data.twBaht;
+                if (data.mtdSf !== undefined) mtdSfInput.value = data.mtdSf;
+                if (data.mtdTwPrev !== undefined) mtdTwPrevInput.value = data.mtdTwPrev;
+            } catch (e) {
+                console.error("Failed to load saved report state", e);
+            }
+        }
+
+        // --- Camera & Watermark Logic ---
+        let currentStream = null;
+        let currentFacingMode = 'environment'; // กล้องหลังเป็นค่าเริ่มต้น
+        const video = document.getElementById('cameraVideo');
+        const canvas = document.getElementById('cameraCanvas');
+        const photoPreview = document.getElementById('photoPreview');
+        const cameraContainer = document.getElementById('cameraContainer');
+        const previewContainer = document.getElementById('previewContainer');
+        const btnStartCamera = document.getElementById('btnStartCamera');
+
+        async function startCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            try {
+                const constraints = {
+                    video: { facingMode: currentFacingMode }
+                };
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
+                video.classList.remove('hidden');
+                
+                cameraContainer.classList.remove('hidden');
+                previewContainer.classList.add('hidden');
+                btnStartCamera.classList.add('hidden');
+            } catch (err) {
+                console.error(err);
+                showToast("ไม่สามารถเข้าถึงกล้องได้ กรุณาตรวจสอบสิทธิ์การใช้กล้อง");
+            }
+        }
+
+        function toggleCamera() {
+            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            startCamera();
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            cameraContainer.classList.add('hidden');
+            btnStartCamera.classList.remove('hidden');
+        }
+
+        function capturePhoto() {
+            // ตั้งค่าความละเอียด Canvas ตามกล้องจริง
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            
+            // วาดรูปจากกล้องลง Canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // เตรียมข้อความลายน้ำ
+            const branchText = "สาขา BC6";
+            let dateText = dateInput.value || "";
+            if(dateText) {
+                const parts = dateText.split('-');
+                dateText = `${parts[2]}/${parts[1]}/${parts[0]}`; // แปลงเป็น DD/MM/YYYY
+            } else {
+                dateText = new Date().toLocaleDateString('th-TH');
+            }
+
+            // ตั้งค่าสไตล์ฟอนต์ลายน้ำ
+            ctx.textAlign = "right";
+            ctx.textBaseline = "bottom";
+            
+            const padding = Math.max(canvas.width * 0.05, 30); // ระยะขอบ
+            const x = canvas.width - padding;
+            const y = canvas.height - padding;
+
+            // วาดชื่อสาขา (ตัวใหญ่มาก)
+            ctx.font = `bold ${Math.floor(canvas.height * 0.1)}px Sarabun, sans-serif`;
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.7)"; // ขอบดำเพื่อให้เห็นชัดทุกพื้นหลัง
+            ctx.lineWidth = Math.floor(canvas.height * 0.015);
+            ctx.strokeText(branchText, x, y - Math.floor(canvas.height * 0.08));
+            ctx.fillStyle = "#facc15"; // สีเหลืองทอง
+            ctx.fillText(branchText, x, y - Math.floor(canvas.height * 0.08));
+
+            // วาดวันที่ (ตัวเล็กลงมานิดนึง)
+            ctx.font = `bold ${Math.floor(canvas.height * 0.05)}px Sarabun, sans-serif`;
+            ctx.lineWidth = Math.floor(canvas.height * 0.01);
+            ctx.strokeText(dateText, x, y);
+            ctx.fillStyle = "#ffffff"; // สีขาว
+            ctx.fillText(dateText, x, y);
+
+            // แสดงผลรูปที่วาดลายน้ำแล้ว
+            photoPreview.src = canvas.toDataURL('image/jpeg', 0.9); // บีบอัดเป็น JPG 90%
+            
+            cameraContainer.classList.add('hidden');
+            previewContainer.classList.remove('hidden');
+            
+            stopCamera();
+        }
+
+        function downloadPhoto() {
+            const link = document.createElement('a');
+            const dateStr = dateInput.value || 'Photo';
+            link.download = `BC6_${dateStr}.jpg`;
+            link.href = photoPreview.src;
+            link.click();
+            showToast("บันทึกรูปภาพเรียบร้อยแล้ว!");
+        }
+
+        function retakePhoto() {
+            previewContainer.classList.add('hidden');
+            startCamera();
+        }
+
+    </script>
+</body>
+</html>
