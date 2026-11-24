@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบสรุปรายงานยอดขายประจำวัน - Donut Shop Daily Report</title>
+    <title>Donut Shop BC6 - ระบบสรุปรายงานยอดขายประจำวัน & ถ่ายรูปลายนํ้า</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Sarabun & Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
@@ -17,431 +19,925 @@
                         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
                     },
                     colors: {
+                        cream: '#FFFBF0',
                         donut: {
-                            50: '#fffbe1',
-                            100: '#fef3c7',
-                            200: '#fde68a',
-                            300: '#fcd34d',
-                            400: '#fbbf24',
-                            500: '#f59e0b',
-                            600: '#d97706',
-                            700: '#b45309',
-                            800: '#92400e',
-                            900: '#78350f',
-                            accent: '#ea580c'
+                            50: '#FFFBEB',
+                            100: '#FEF3C7',
+                            200: '#FDE68A',
+                            300: '#FCD34D',
+                            400: '#FBBF24',
+                            500: '#F59E0B',
+                            600: '#D97706',
+                            700: '#B45309',
+                            800: '#92400E',
+                            900: '#78350F'
                         }
                     }
                 }
             }
-        }
+        };
     </script>
     <style>
-        /* Custom UI Tweaks */
+        /* Warm Donut Shop Background & Smooth Scrollbar */
         body {
-            background: linear-gradient(135deg, #fffcf0 0%, #fef3c7 50%, #fff7ed 100%);
+            background: linear-gradient(145deg, #FFFDF5 0%, #FEF3C7 55%, #FFEDD5 100%);
             min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
         }
         .glass-card {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.96);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(251, 191, 36, 0.25);
+            border: 1px solid rgba(245, 158, 11, 0.22);
         }
         textarea::-webkit-scrollbar {
             width: 6px;
         }
         textarea::-webkit-scrollbar-track {
-            background: #fffbe1;
-            border-radius: 4px;
+            background: #1e293b;
+            border-radius: 6px;
         }
         textarea::-webkit-scrollbar-thumb {
             background: #f59e0b;
-            border-radius: 4px;
+            border-radius: 6px;
         }
     </style>
 </head>
-<body class="text-slate-800 pb-12 antialiased">
+<body class="text-slate-800 antialiased pb-12 overflow-x-hidden">
 
-    <!-- Top Toast Notification -->
-    <div id="toast" class="fixed top-5 right-5 z-50 transform translate-y-[-150%] transition-transform duration-300 ease-in-out bg-emerald-600 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 font-semibold text-sm">
-        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-        <span id="toastMsg">คัดลอกรายงานเรียบร้อยแล้ว!</span>
+    <!-- Toast Notification -->
+    <div id="toast" role="status" aria-live="polite"
+         class="fixed top-4 right-4 left-4 sm:left-auto z-50 transform -translate-y-32 opacity-0 transition-all duration-300 ease-out bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center justify-center sm:justify-start gap-2.5 font-semibold text-sm pointer-events-none">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span id="toastMsg">ดำเนินการเรียบร้อย!</span>
     </div>
 
-    <!-- Modal Dialog (Replaces native alert/confirm) -->
-    <div id="modalOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-amber-200 transform transition-all">
-            <h3 id="modalTitle" class="text-xl font-bold text-slate-800 mb-2">ยืนยันการทำรายการ</h3>
-            <p id="modalBody" class="text-slate-600 text-sm mb-6">คุณต้องการทำรายการนี้ใช่หรือไม่?</p>
-            <div class="flex justify-end gap-3">
-                <button id="modalCancelBtn" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-sm transition">ยกเลิก</button>
-                <button id="modalConfirmBtn" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg text-sm shadow-md transition">ยืนยัน</button>
+    <!-- Custom Confirmation Modal (Replaces native alert/confirm) -->
+    <div id="modalOverlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-amber-200">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl">⚠️</div>
+                <h3 id="modalTitle" class="text-lg font-bold text-slate-800">ยืนยันการทำรายการ</h3>
+            </div>
+            <p id="modalBody" class="text-slate-600 text-sm leading-relaxed mb-6 pl-1"></p>
+            <div class="flex justify-end gap-2.5">
+                <button type="button" id="modalCancelBtn"
+                        class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-semibold rounded-xl text-sm transition">
+                    ยกเลิก
+                </button>
+                <button type="button" id="modalConfirmBtn"
+                        class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-semibold rounded-xl text-sm shadow-md transition">
+                    ยืนยัน
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Main Container -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+    <!-- Main App Wrapper -->
+    <div class="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-5">
 
-        <!-- Header Bar -->
-        <header class="glass-card rounded-2xl p-5 mb-6 shadow-md flex flex-col md:flex-row items-center justify-between gap-4 border-b-4 border-amber-500">
-            <div class="flex items-center gap-3.5">
-                <div class="w-12 h-12 bg-gradient-to-tr from-amber-500 to-orange-400 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20 text-white">
+        <!-- Header -->
+        <header class="glass-card rounded-3xl p-4 sm:p-5 mb-6 shadow-md border-b-4 border-amber-500 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5 w-full md:w-auto">
+                <div class="w-12 h-12 shrink-0 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-amber-500/25 text-white">
                     🍩
                 </div>
                 <div>
-                    <h1 class="text-xl sm:text-2xl font-bold text-amber-900 leading-tight">Donut Shop Daily Report</h1>
-                    <p class="text-xs sm:text-sm text-amber-700 font-medium">ระบบคำนวณและสรุปรายงานยอดขายประจำวันอัตโนมัติ</p>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-lg sm:text-2xl font-extrabold text-amber-900 leading-tight">Donut Shop Daily Report</h1>
+                        <span class="px-2.5 py-0.5 text-xs font-extrabold bg-amber-900 text-amber-100 rounded-lg tracking-wide">สาขา BC6</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-amber-700/90 font-medium mt-0.5">สรุปรายงานยอดขายอัตโนมัติ & กล้องถ่ายรูประบุสาขาพร้อมเวลา</p>
                 </div>
             </div>
 
-            <!-- Quick Action Toolbar -->
-            <div class="flex flex-wrap items-center gap-2">
-                <button onclick="loadSampleData()" class="px-3.5 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 font-semibold text-xs sm:text-sm rounded-xl transition flex items-center gap-1.5 shadow-sm">
+            <!-- Header Quick Actions -->
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                <button type="button" onclick="loadSampleData()"
+                        class="flex-1 md:flex-none px-4 py-2.5 bg-amber-100 hover:bg-amber-200 active:scale-95 text-amber-900 font-bold text-xs sm:text-sm rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
                     <span>💡</span> ตัวอย่างข้อมูล
                 </button>
-                <button onclick="confirmReset()" class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs sm:text-sm rounded-xl transition flex items-center gap-1.5 shadow-sm">
-                    <span>🔄</span> ล้างค่าวันนี้
+                <button type="button" onclick="confirmReset()"
+                        class="flex-1 md:flex-none px-4 py-2.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 font-bold text-xs sm:text-sm rounded-xl transition flex items-center justify-center gap-1.5 border border-rose-200/80 shadow-sm">
+                    <span>🔄</span> ล้างข้อมูล
                 </button>
             </div>
         </header>
 
-        <!-- Main Layout Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Main Responsive Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-            <!-- LEFT FORM COLUMN (7 cols) -->
+            <!-- LEFT COLUMN: Form Inputs & Native Camera Tool -->
             <div class="lg:col-span-7 space-y-5">
 
-                <!-- Card 1: Sales & Transactions -->
-                <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4">
+                <!-- Section 1: Daily Sales & Food -->
+                <section class="glass-card rounded-3xl p-5 shadow-sm space-y-4">
                     <div class="flex items-center justify-between border-b border-amber-100 pb-3">
                         <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
-                            <span class="p-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm">💰</span>
+                            <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm">💰</span>
                             1. ยอดขายประจำวัน (Sales & Food)
                         </h2>
-                        <span class="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium border border-amber-200">VAT 7% Auto Deduct</span>
+                        <span class="text-[11px] bg-amber-50 text-amber-800 px-2.5 py-1 rounded-full font-semibold border border-amber-200">หัก VAT 7% อัตโนมัติ</span>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">วันที่</label>
-                            <input type="date" id="dateInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition">
+                            <label for="dateInput" class="block text-xs font-bold text-slate-700 mb-1.5">วันที่รายงาน</label>
+                            <input type="date" id="dateInput"
+                                   class="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Sub Total Sales (รวม VAT)</label>
-                            <input type="text" id="salesInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="เช่น 9442 หรือ 8000+1442">
-                            <p class="text-[11px] text-amber-700 mt-1 flex justify-between">
-                                <span>ถอด VAT (Net):</span>
+                            <label for="salesInput" class="block text-xs font-bold text-slate-700 mb-1.5">Sub Total Sales (รวม VAT)</label>
+                            <input type="text" inputmode="text" id="salesInput" placeholder="เช่น 9442 หรือ 8000+1442"
+                                   class="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
+                            <div class="flex justify-between text-xs text-amber-800 mt-1.5 px-0.5">
+                                <span>ยอดสุทธิ (Net / 1.07):</span>
                                 <span id="salesNetBadge" class="font-bold text-slate-900">0.00 ฿</span>
-                            </p>
+                            </div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1.5">ยอดขายอาหาร Sale Food (ข้อ 1 + 4 + 55 รวม VAT)</label>
-                        <input type="text" id="foodInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="เช่น 6246+1213+1094">
-                        <div class="flex justify-between items-center text-[11px] text-amber-700 mt-1">
-                            <span>* พิมพ์เครื่องหมาย + เชื่อมตัวเลขได้เลย</span>
-                            <span>Food Net: <strong id="foodNetBadge" class="font-bold text-slate-900">0.00 ฿</strong></span>
+                        <label for="foodInput" class="block text-xs font-bold text-slate-700 mb-1.5">ยอดขายอาหาร Sale Food (ข้อ 1, 4, 55 รวม VAT)</label>
+                        <input type="text" inputmode="text" id="foodInput" placeholder="เช่น 6246+1213+1094"
+                               class="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
+                        <div class="flex flex-wrap justify-between items-center gap-1 text-xs text-amber-800 mt-1.5 px-0.5">
+                            <span class="text-slate-500">* พิมพ์เครื่องหมาย + บวกเลขต่อกันได้เลย</span>
+                            <span>Food Net: <strong id="foodNetBadge" class="text-slate-900">0.00 ฿</strong></span>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4 pt-1">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">TC (Transaction Count)</label>
-                            <input type="number" id="tcInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="64">
+                            <label for="tcInput" class="block text-xs font-bold text-slate-700 mb-1.5">TC (จำนวนบิล)</label>
+                            <input type="number" inputmode="numeric" id="tcInput" placeholder="64"
+                                   class="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">TA (Ticket Average)</label>
-                            <input type="number" step="0.01" id="taInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="147.53">
+                            <label for="taInput" class="block text-xs font-bold text-slate-700 mb-1.5">TA (ยอดเฉลี่ยต่อบิล)</label>
+                            <input type="number" inputmode="decimal" step="0.01" id="taInput" placeholder="147.53"
+                                   class="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <!-- Card 2: Staffing & Labor COL -->
-                <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4">
-                    <div class="flex items-center justify-between border-b border-amber-100 pb-3">
+                <!-- Section 2: Staffing & Labor Cost -->
+                <section class="glass-card rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-100 pb-3">
                         <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
-                            <span class="p-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm">👤</span>
-                            2. บุคลากร & ค่าแรง (Staff & COL)
+                            <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm">👤</span>
+                            2. พนักงาน & ค่าแรง (Staff & COL)
                         </h2>
-                        <span class="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium border border-amber-200">FT 450฿/คน | PT 47฿/ชม.</span>
+                        <span class="text-[11px] bg-amber-50 text-amber-800 px-2.5 py-1 rounded-full font-semibold border border-amber-200">FT 450฿/คน | PT 47฿/ชม.</span>
                     </div>
 
                     <div class="grid grid-cols-3 gap-3">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">FT (คน)</label>
-                            <input type="number" id="ftInput" value="2" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition">
+                            <label for="ftInput" class="block text-xs font-bold text-slate-700 mb-1.5">FT (คน)</label>
+                            <input type="number" inputmode="numeric" id="ftInput" value="2" min="0"
+                                   class="w-full px-3 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">PT (คน)</label>
-                            <input type="number" id="ptCountInput" value="1" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition">
+                            <label for="ptCountInput" class="block text-xs font-bold text-slate-700 mb-1.5">PT (คน)</label>
+                            <input type="number" inputmode="numeric" id="ptCountInput" value="1" min="0"
+                                   class="w-full px-3 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">ชั่วโมง PT รวม</label>
-                            <input type="number" step="0.5" id="ptHoursInput" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="3">
+                            <label for="ptHoursInput" class="block text-xs font-bold text-slate-700 mb-1.5">ชั่วโมง PT รวม</label>
+                            <input type="number" inputmode="decimal" step="0.5" id="ptHoursInput" placeholder="3" min="0"
+                                   class="w-full px-3 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
                         </div>
                     </div>
 
-                    <div class="bg-amber-50/80 rounded-xl p-3 border border-amber-200 flex items-center justify-around text-xs font-semibold text-amber-900">
-                        <div>FTE รวม: <span id="fteBadge" class="text-amber-700 text-sm font-bold">0</span> คน</div>
-                        <div class="h-4 w-px bg-amber-300"></div>
-                        <div>ค่าแรง COL: <span id="colBahtBadge" class="text-amber-700 text-sm font-bold">0 ฿</span></div>
-                        <div class="h-4 w-px bg-amber-300"></div>
-                        <div>COL%: <span id="colPercentBadge" class="text-amber-700 text-sm font-bold">0.00%</span></div>
+                    <div class="bg-amber-50/90 rounded-2xl p-3 border border-amber-200 grid grid-cols-3 text-center text-xs font-semibold text-amber-900 divide-x divide-amber-300/70">
+                        <div>
+                            <span class="block text-[11px] text-amber-700">FTE รวม</span>
+                            <span id="fteBadge" class="text-sm font-extrabold text-amber-950">3 คน</span>
+                        </div>
+                        <div>
+                            <span class="block text-[11px] text-amber-700">COL ฿</span>
+                            <span id="colBahtBadge" class="text-sm font-extrabold text-amber-950">900 ฿</span>
+                        </div>
+                        <div>
+                            <span class="block text-[11px] text-amber-700">COL %</span>
+                            <span id="colPercentBadge" class="text-sm font-extrabold text-amber-950">0.00%</span>
+                        </div>
                     </div>
-                </div>
+                </section>
 
-                <!-- Card 3: Production & Wastage -->
-                <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4">
+                <!-- Section 3: Production & Wastage -->
+                <section class="glass-card rounded-3xl p-5 shadow-sm space-y-4">
                     <div class="flex items-center justify-between border-b border-amber-100 pb-3">
                         <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
-                            <span class="p-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm">🍩</span>
-                            3. ยอดผลิต & ของเสีย (Production & Waste)
+                            <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm">🍩</span>
+                            3. ยอดผลิต & ของเสีย (Production & TW)
                         </h2>
                     </div>
 
                     <div class="grid grid-cols-3 gap-3">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">ผลิต (ชิ้น)</label>
-                            <input type="number" id="producedInput" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="379">
+                            <label for="producedInput" class="block text-xs font-bold text-slate-700 mb-1.5">ผลิต (pc)</label>
+                            <input type="number" inputmode="numeric" id="producedInput" placeholder="379" min="0"
+                                   class="w-full px-3 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">ทิ้ง TW/pc (ชิ้น)</label>
-                            <input type="number" id="twPcInput" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="1">
+                            <label for="twPcInput" class="block text-xs font-bold text-slate-700 mb-1.5">TW/pc (ชิ้น)</label>
+                            <input type="number" inputmode="numeric" id="twPcInput" placeholder="1" min="0"
+                                   class="w-full px-3 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">ทิ้ง TW/฿ (บาท)</label>
-                            <input type="number" step="0.01" id="twBahtInput" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="2.23">
+                            <label for="twBahtInput" class="block text-xs font-bold text-slate-700 mb-1.5">TW/฿ (บาท)</label>
+                            <input type="number" inputmode="decimal" step="0.01" id="twBahtInput" placeholder="2.23" min="0"
+                                   class="w-full px-3 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-800 text-center focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
                         </div>
                     </div>
 
-                    <div class="bg-amber-50/80 rounded-xl p-2.5 border border-amber-200 text-center text-xs font-semibold text-amber-900">
-                        อัตราของเสียวันนี้ (TW %): <span id="twPercentBadge" class="text-amber-700 text-sm font-bold">0.00%</span>
+                    <div class="bg-amber-50/90 rounded-2xl p-2.5 border border-amber-200 text-center text-xs font-semibold text-amber-900">
+                        เปอร์เซ็นต์ของเสียวันนี้ (Tw%): <span id="twPercentBadge" class="text-amber-800 text-sm font-extrabold ml-1">0.00%</span>
                     </div>
-                </div>
+                </section>
 
-                <!-- Card 4: Monthly Accumulation (MTD) -->
-                <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4">
+                <!-- Section 4: MTD Accumulation -->
+                <section class="glass-card rounded-3xl p-5 shadow-sm space-y-4">
                     <div class="flex items-center justify-between border-b border-amber-100 pb-3">
                         <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
-                            <span class="p-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm">🎯</span>
+                            <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm">🎯</span>
                             4. ยอดสะสมประจำเดือน (MTD)
                         </h2>
                     </div>
 
-                    <div class="space-y-3">
+                    <div class="space-y-3.5">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Sale Food MTD Gross (รวม VAT หรือพิมพ์บวกสะสม)</label>
-                            <input type="text" id="mtdSfInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="เช่น 89323+19357+23852">
-                            <p class="text-[11px] text-amber-700 mt-1 flex justify-between">
-                                <span>Sale Food MTD (ถอด VAT แล้ว):</span>
+                            <label for="mtdSfInput" class="block text-xs font-bold text-slate-700 mb-1.5">Sale Food MTD (รวม VAT หรือพิมพ์บวกสะสม)</label>
+                            <input type="text" inputmode="text" id="mtdSfInput" placeholder="เช่น 89323+19357+23852"
+                                   class="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
+                            <div class="flex justify-between text-xs text-amber-800 mt-1.5 px-0.5">
+                                <span>Sale Food MTD (หัก VAT แล้ว):</span>
                                 <span id="mtdSfNetBadge" class="font-bold text-slate-900">0.00 ฿</span>
-                            </p>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">ยอดทิ้งสะสม TW/฿ MTD ของเมื่อวาน (บาท)</label>
-                            <input type="number" step="0.01" id="mtdTwPrevInput" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" placeholder="803.61">
-                        </div>
-                    </div>
-
-                    <div class="bg-amber-100/70 rounded-xl p-3 border border-amber-300/60 flex items-center justify-between text-xs font-bold text-amber-950">
-                        <div>TW/฿ MTD รวมวันนี้: <span id="mtdTwTotalBadge" class="text-amber-800 text-sm">0.00 ฿</span></div>
-                        <div>TW (%) MTD: <span id="mtdTwPercentBadge" class="text-amber-800 text-sm">0.00%</span></div>
-                    </div>
-                </div>
-
-                <!-- NEW: Card 5: Camera & Watermark -->
-                <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4 border-2 border-amber-400">
-                    <div class="flex items-center justify-between border-b border-amber-100 pb-3">
-                        <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
-                            <span class="p-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm">📸</span>
-                            5. ถ่ายรูประบุสาขา (BC6)
-                        </h2>
-                    </div>
-                    
-                    <!-- Camera Container -->
-                    <div id="cameraSection" class="flex flex-col items-center gap-4">
-                        
-                        <!-- Native Camera Input (Hidden) -->
-                        <input type="file" accept="image/*" capture="environment" id="cameraInput" class="hidden">
-                        
-                        <button id="btnStartCamera" onclick="document.getElementById('cameraInput').click()" class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                            เปิดกล้องมือถือ (ถ่ายรูป/ซูมได้)
-                        </button>
-                        
-                        <!-- Captured Preview & Download (Hidden initially) -->
-                        <div id="previewContainer" class="hidden w-full space-y-4">
-                            <div class="text-center font-bold text-sm text-emerald-600">✅ ถ่ายรูปและฝังชื่อสาขาเรียบร้อย!</div>
-                            <img id="photoPreview" class="w-full rounded-xl border border-amber-300 shadow-md object-contain max-h-[500px]" />
-                            <canvas id="cameraCanvas" class="hidden"></canvas>
-                            
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <button onclick="document.getElementById('cameraInput').click()" class="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-sm transition">
-                                    ถ่ายใหม่
-                                </button>
-                                <button onclick="downloadPhoto()" class="flex-[2] py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md text-sm transition flex justify-center items-center gap-2">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                    บันทึกรูปลงเครื่อง
-                                </button>
                             </div>
                         </div>
+
+                        <div>
+                            <label for="mtdTwPrevInput" class="block text-xs font-bold text-slate-700 mb-1.5">TW/฿ MTD ของเมื่อวาน (บาท)</label>
+                            <input type="number" inputmode="decimal" step="0.01" id="mtdTwPrevInput" placeholder="803.61"
+                                   class="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
+                        </div>
                     </div>
-                </div>
+
+                    <div class="bg-amber-100/80 rounded-2xl p-3 border border-amber-300/70 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-amber-950">
+                        <div>TW/฿ MTD รวมวันนี้: <span id="mtdTwTotalBadge" class="text-amber-900 text-sm font-extrabold">0.00 ฿</span></div>
+                        <div>TW (%) MTD: <span id="mtdTwPercentBadge" class="text-amber-900 text-sm font-extrabold">0.00%</span></div>
+                    </div>
+                </section>
+
+                <!-- Section 5: Native Mobile Camera + Non-Overlapping BC6 & DateTime Watermark -->
+                <section class="glass-card rounded-3xl p-5 shadow-md space-y-4 border-2 border-amber-400">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-100 pb-3">
+                        <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-sm shadow-sm">📷</span>
+                            5. ถ่ายรูประบุสาขา BC6 + วันที่และเวลา
+                        </h2>
+                        <span class="text-[11px] bg-slate-900 text-white px-2.5 py-1 rounded-full font-semibold">ความละเอียดเต็ม • แถบขาวแยกด้านล่าง</span>
+                    </div>
+
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        เปิดกล้องมือถือโดยตรง (ซูมได้ ปรับแสงได้ตามปกติ) ระบบจะเพิ่มแถบสีขาวด้านล่างแยกออกจากภาพถ่าย พร้อมประทับคำว่า <strong class="text-slate-900">BC6</strong> และ <strong class="text-slate-900">วันที่-เวลาที่ถ่าย</strong> ให้อัตโนมัติโดยไม่บังข้อมูลในภาพ
+                    </p>
+
+                    <!-- Hidden Native Camera Input -->
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+
+                    <!-- Prominent Open Native Camera Button -->
+                    <button type="button" id="btnOpenCamera" onclick="triggerNativeCamera()"
+                            class="w-full py-4 px-4 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-black active:scale-[0.98] text-white font-bold rounded-2xl shadow-lg transition flex items-center justify-center gap-2.5 text-sm sm:text-base">
+                        <span class="text-xl">📷</span>
+                        <span>เปิดกล้องมือถือถ่ายรูป (สาขา BC6)</span>
+                    </button>
+
+                    <!-- Processing Indicator -->
+                    <div id="photoLoading" class="hidden py-4 text-center text-sm font-semibold text-amber-800 bg-amber-50 rounded-2xl border border-amber-200 animate-pulse">
+                        ⏳ กำลังประมวลผลภาพความละเอียดสูงและฝังแถบ BC6...
+                    </div>
+
+                    <!-- Live Preview & Unique-Filename Save Controls -->
+                    <div id="previewContainer" class="hidden space-y-3.5 pt-1">
+                        <div class="flex items-center justify-between text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3.5 py-2 rounded-xl">
+                            <span>✅ พร้อมบันทึกและส่งเข้า LINE</span>
+                            <span id="photoMetaBadge" class="text-emerald-800 font-mono text-[11px]"></span>
+                        </div>
+
+                        <div class="bg-slate-100 rounded-2xl p-2 border border-amber-300 shadow-inner">
+                            <img id="photoPreview" alt="ตัวอย่างภาพถ่ายพร้อมลายน้ำ BC6"
+                                 class="w-full h-auto max-h-[520px] object-contain rounded-xl mx-auto shadow-sm">
+                        </div>
+
+                        <!-- Offscreen Canvas for Full Native Resolution Processing -->
+                        <canvas id="watermarkCanvas" class="hidden"></canvas>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                            <button type="button" onclick="triggerNativeCamera()"
+                                    class="py-3.5 px-4 bg-slate-200 hover:bg-slate-300 active:scale-[0.98] text-slate-800 font-bold rounded-xl text-sm transition flex items-center justify-center gap-1.5">
+                                <span>🔄</span> ถ่ายรูปใหม่
+                            </button>
+                            <button type="button" id="btnSavePhoto" onclick="saveWatermarkedPhoto()"
+                                    class="sm:col-span-2 py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold rounded-xl shadow-md shadow-emerald-600/25 text-sm sm:text-base transition flex items-center justify-center gap-2">
+                                <span>💾</span> บันทึกรูปลงเครื่อง
+                            </button>
+                        </div>
+                    </div>
+                </section>
 
             </div>
 
-            <!-- RIGHT PREVIEW & ACTION COLUMN (5 cols) -->
-            <div class="lg:col-span-5 space-y-5 lg:sticky lg:top-6 self-start">
+            <!-- RIGHT COLUMN: KPI Badges & Final Report Output -->
+            <div class="lg:col-span-5 space-y-5 lg:sticky lg:top-6">
 
-                <!-- KPI Summary Badges -->
+                <!-- Quick KPI Summary -->
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-white p-3.5 rounded-2xl border border-amber-200 shadow-sm flex flex-col justify-between">
+                    <div class="glass-card p-4 rounded-2xl shadow-sm">
                         <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">COL % (ค่าแรง)</span>
-                        <div id="kpiCol" class="text-2xl font-black text-amber-600 mt-1">0.00%</div>
-                        <span class="text-[10px] text-slate-400">เป้าหมาย &lt; 15%</span>
+                        <div id="kpiCol" class="text-2xl font-extrabold text-amber-600 mt-1">0.00%</div>
+                        <span class="text-[11px] text-slate-400">คำนวณจากยอดขาย Net</span>
                     </div>
-                    <div class="bg-white p-3.5 rounded-2xl border border-amber-200 shadow-sm flex flex-col justify-between">
-                        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">TW % MTD (ทิ้งสะสม)</span>
-                        <div id="kpiMtdTw" class="text-2xl font-black text-emerald-600 mt-1">0.00%</div>
-                        <span class="text-[10px] text-slate-400">เป้าหมาย &lt; 1.0%</span>
+                    <div class="glass-card p-4 rounded-2xl shadow-sm">
+                        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">TW (%) MTD</span>
+                        <div id="kpiMtdTw" class="text-2xl font-extrabold text-emerald-600 mt-1">0.00%</div>
+                        <span class="text-[11px] text-slate-400">ยอดทิ้งสะสมประจำเดือน</span>
                     </div>
                 </div>
 
-                <!-- Final Output Box -->
-                <div class="glass-card rounded-2xl p-5 shadow-xl border-t-4 border-amber-600 flex flex-col space-y-4">
+                <!-- Report Output Card -->
+                <section class="glass-card rounded-3xl p-5 shadow-xl border-t-4 border-amber-500 space-y-4">
                     <div class="flex items-center justify-between">
                         <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                            <span>📋</span> ข้อความรายงานพร้อมส่ง
+                            <span>📋</span> สรุปรายงานพร้อมส่ง
                         </h2>
-                        <span class="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-md">พร้อมคัดลอก</span>
+                        <span class="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-lg">อัปเดตอัตโนมัติ</span>
                     </div>
 
-                    <textarea id="outputReport" readonly class="w-full h-[360px] p-4 bg-slate-900 text-amber-200 font-mono text-xs sm:text-sm rounded-xl border border-slate-700 shadow-inner focus:outline-none resize-none leading-relaxed select-all"></textarea>
+                    <textarea id="outputReport" readonly rows="17"
+                              class="w-full p-4 bg-slate-900 text-amber-200 font-mono text-xs sm:text-sm rounded-2xl border border-slate-700 shadow-inner focus:outline-none resize-none leading-relaxed select-all"></textarea>
 
-                    <!-- Copy & Rollover Buttons -->
+                    <!-- Primary Action Buttons -->
                     <div class="space-y-2.5">
-                        <button id="copyBtn" onclick="copyReport()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 transition flex items-center justify-center gap-2 text-base">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                            คัดลอกรายงาน (Copy Report)
+                        <button type="button" id="copyBtn" onclick="copyReport()"
+                                class="w-full py-4 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-white font-bold rounded-2xl shadow-lg shadow-amber-500/30 transition flex items-center justify-center gap-2 text-base">
+                            <span>📋</span> คัดลอกรายงาน
                         </button>
 
-                        <button onclick="confirmRollover()" class="w-full py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 border border-amber-300/80">
+                        <button type="button" onclick="confirmRollover()"
+                                class="w-full py-3 px-4 bg-amber-100 hover:bg-amber-200 active:scale-[0.98] text-amber-900 font-bold rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 border border-amber-300">
                             <span>⏩</span> ยกยอดสะสม (MTD) ไปวันถัดไป
                         </button>
                     </div>
-                </div>
+                </section>
 
-                <!-- Footer info -->
-                <p class="text-center text-xs text-amber-800/70 font-medium">
-                    🍩 Donut Daily Report Engine • Auto-Saved in Browser
+                <p class="text-center text-xs text-amber-900/70 font-medium">
+                    🍩 Donut Shop BC6 • บันทึกข้อมูลอัตโนมัติในเครื่องของคุณ
                 </p>
-
             </div>
 
         </div>
-
     </div>
 
-    <!-- JavaScript Logic -->
     <script>
-        // Modal Helper Logic
-        let modalConfirmCallback = null;
+        /* =====================================================================
+           1. DOM REFERENCES & STORAGE KEY
+        ===================================================================== */
+        const STORAGE_KEY = 'donut_bc6_report_state_v2';
+
+        const inputs = {
+            date: document.getElementById('dateInput'),
+            sales: document.getElementById('salesInput'),
+            food: document.getElementById('foodInput'),
+            tc: document.getElementById('tcInput'),
+            ta: document.getElementById('taInput'),
+            ft: document.getElementById('ftInput'),
+            ptCount: document.getElementById('ptCountInput'),
+            ptHours: document.getElementById('ptHoursInput'),
+            produced: document.getElementById('producedInput'),
+            twPc: document.getElementById('twPcInput'),
+            twBaht: document.getElementById('twBahtInput'),
+            mtdSf: document.getElementById('mtdSfInput'),
+            mtdTwPrev: document.getElementById('mtdTwPrevInput')
+        };
+
+        const outputReport = document.getElementById('outputReport');
+        const copyBtn = document.getElementById('copyBtn');
+
+        // Camera & Watermark DOM elements
+        const cameraInput = document.getElementById('cameraInput');
+        const watermarkCanvas = document.getElementById('watermarkCanvas');
+        const photoPreview = document.getElementById('photoPreview');
+        const previewContainer = document.getElementById('previewContainer');
+        const photoLoading = document.getElementById('photoLoading');
+        const photoMetaBadge = document.getElementById('photoMetaBadge');
+        const btnSavePhoto = document.getElementById('btnSavePhoto');
+
+        let currentPreviewObjectUrl = null;
+        let currentWatermarkedBlob = null;
+
+        /* =====================================================================
+           2. TOAST & CUSTOM MODAL HELPERS (No native alert/confirm)
+        ===================================================================== */
+        let toastTimer = null;
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = message;
+            toast.classList.remove('-translate-y-32', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('-translate-y-32', 'opacity-0');
+            }, 2400);
+        }
+
+        let modalOnConfirm = null;
+        const modalOverlay = document.getElementById('modalOverlay');
 
         function showModal(title, body, onConfirm) {
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalBody').innerText = body;
-            modalConfirmCallback = onConfirm;
-            document.getElementById('modalOverlay').classList.remove('hidden');
+            modalOnConfirm = onConfirm;
+            modalOverlay.classList.remove('hidden');
+            modalOverlay.classList.add('flex');
         }
 
         function closeModal() {
-            document.getElementById('modalOverlay').classList.add('hidden');
-            modalConfirmCallback = null;
+            modalOverlay.classList.add('hidden');
+            modalOverlay.classList.remove('flex');
+            modalOnConfirm = null;
         }
 
         document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
         document.getElementById('modalConfirmBtn').addEventListener('click', () => {
-            if (modalConfirmCallback) modalConfirmCallback();
+            const cb = modalOnConfirm;
             closeModal();
+            if (typeof cb === 'function') cb();
+        });
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
         });
 
-        // Toast Helper
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastMsg').innerText = msg;
-            toast.classList.remove('translate-y-[-150%]');
-            setTimeout(() => {
-                toast.classList.add('translate-y-[-150%]');
-            }, 2500);
+        /* =====================================================================
+           3. MATH & FORMATTING UTILITIES
+        ===================================================================== */
+        function pad2(n) {
+            return String(n).padStart(2, '0');
         }
 
-        // Safe Expression Evaluator for math inputs like "6246+1213+1094"
-        function parseMathString(str) {
-            if (!str) return 0;
-            if (typeof str === 'number') return isNaN(str) ? 0 : str;
+        function getTodayISO() {
+            const now = new Date();
+            return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+        }
+
+        // Safely evaluates "+" separated numbers (e.g., "6246+1213+1094")
+        function parseMathString(raw) {
+            if (raw === null || raw === undefined) return 0;
             try {
-                const cleaned = String(str).replace(/,/g, '').trim();
+                const cleaned = String(raw).replace(/,/g, '').trim();
                 if (!cleaned) return 0;
-                return cleaned.split('+').reduce((sum, item) => {
-                    const val = parseFloat(item.trim());
-                    return sum + (isNaN(val) ? 0 : val);
+                return cleaned.split('+').reduce((sum, part) => {
+                    const num = parseFloat(part.trim());
+                    return sum + (Number.isFinite(num) ? num : 0);
                 }, 0);
-            } catch (e) {
+            } catch (err) {
                 return 0;
             }
         }
 
-        // Number Formatter
-        function formatNum(num, decimals = 2) {
-            if (num === null || num === undefined || isNaN(num) || num === '') return '';
-            const n = Number(num);
-            return n.toLocaleString('en-US', {
+        function formatNumber(num, decimals = 2) {
+            if (!Number.isFinite(num)) return '';
+            return num.toLocaleString('en-US', {
                 minimumFractionDigits: decimals,
                 maximumFractionDigits: decimals
             });
         }
 
-        // DOM Inputs
-        const dateInput = document.getElementById('dateInput');
-        const salesInput = document.getElementById('salesInput');
-        const foodInput = document.getElementById('foodInput');
-        const tcInput = document.getElementById('tcInput');
-        const taInput = document.getElementById('taInput');
-        const ftInput = document.getElementById('ftInput');
-        const ptCountInput = document.getElementById('ptCountInput');
-        const ptHoursInput = document.getElementById('ptHoursInput');
-        const producedInput = document.getElementById('producedInput');
-        const twPcInput = document.getElementById('twPcInput');
-        const twBahtInput = document.getElementById('twBahtInput');
-        const mtdSfInput = document.getElementById('mtdSfInput');
-        const mtdTwPrevInput = document.getElementById('mtdTwPrevInput');
-        const outputReport = document.getElementById('outputReport');
-
-        // Initializer
-        document.addEventListener("DOMContentLoaded", () => {
-            // Set Default Date to current date if empty
-            if (!dateInput.value) {
-                const today = new Date();
-                const yyyy = today.getFullYear();
-                const mm = String(today.getMonth() + 1).padStart(2, '0');
-                const dd = String(today.getDate()).padStart(2, '0');
-                dateInput.value = `${yyyy}-${mm}-${dd}`;
+        /* =====================================================================
+           4. CORE SALES REPORT CALCULATION ENGINE
+        ===================================================================== */
+        function calculate() {
+            // 1. Date formatted as DD/MM/YY
+            let formattedDate = '';
+            if (inputs.date.value) {
+                const parts = inputs.date.value.split('-');
+                if (parts.length === 3) {
+                    formattedDate = `${parts[2]}/${parts[1]}/${parts[0].slice(-2)}`;
+                }
             }
 
-            // Restore from LocalStorage if exists
+            // 2. Sales & Sale Food (Gross -> Net / 1.07)
+            const hasSales = inputs.sales.value.trim() !== '';
+            const salesGross = parseMathString(inputs.sales.value);
+            const salesNet = salesGross > 0 ? salesGross / 1.07 : 0;
+
+            const hasFood = inputs.food.value.trim() !== '';
+            const foodGross = parseMathString(inputs.food.value);
+            const foodNet = foodGross > 0 ? foodGross / 1.07 : 0;
+
+            const tc = inputs.tc.value.trim();
+            const hasTa = inputs.ta.value.trim() !== '';
+            const ta = parseFloat(inputs.ta.value) || 0;
+
+            // Update live Net badges
+            document.getElementById('salesNetBadge').innerText = `${formatNumber(salesNet, 2)} ฿`;
+            document.getElementById('foodNetBadge').innerText = `${formatNumber(foodNet, 2)} ฿`;
+
+            // 3. Staffing & Labor Cost (FT = 450, PT = 47/hr)
+            const ftCount = parseFloat(inputs.ft.value) || 0;
+            const ptCount = parseFloat(inputs.ptCount.value) || 0;
+            const ptHours = parseFloat(inputs.ptHours.value) || 0;
+
+            const fte = ftCount + ptCount;
+            const colBaht = (ftCount * 450) + (ptHours * 47);
+            const colPercent = salesNet > 0 ? (colBaht / salesNet) * 100 : 0;
+
+            document.getElementById('fteBadge').innerText = `${fte} คน`;
+            document.getElementById('colBahtBadge').innerText = `${formatNumber(colBaht, 0)} ฿`;
+            document.getElementById('colPercentBadge').innerText = `${formatNumber(colPercent, 2)}%`;
+            document.getElementById('kpiCol').innerText = `${formatNumber(colPercent, 2)}%`;
+
+            // 4. Production & Wastage
+            const produced = inputs.produced.value.trim();
+            const twPc = inputs.twPc.value.trim();
+            const hasTwBaht = inputs.twBaht.value.trim() !== '';
+            const twBaht = parseFloat(inputs.twBaht.value) || 0;
+            const twPercent = (foodNet > 0 && hasTwBaht) ? (twBaht / foodNet) * 100 : 0;
+
+            document.getElementById('twPercentBadge').innerText = `${formatNumber(twPercent, 2)}%`;
+
+            // 5. MTD Tracking
+            const hasMtdSf = inputs.mtdSf.value.trim() !== '';
+            const mtdSfRaw = parseMathString(inputs.mtdSf.value);
+            const mtdSfNet = mtdSfRaw > 0 ? mtdSfRaw / 1.07 : 0;
+
+            const hasMtdTwPrev = inputs.mtdTwPrev.value.trim() !== '';
+            const mtdTwPrev = parseFloat(inputs.mtdTwPrev.value) || 0;
+            const hasMtdTwTotal = hasMtdTwPrev || hasTwBaht;
+            const mtdTwTotal = hasMtdTwTotal ? (mtdTwPrev + twBaht) : 0;
+            const mtdTwPercent = (mtdSfNet > 0 && hasMtdTwTotal) ? (mtdTwTotal / mtdSfNet) * 100 : 0;
+
+            document.getElementById('mtdSfNetBadge').innerText = `${formatNumber(mtdSfNet, 2)} ฿`;
+            document.getElementById('mtdTwTotalBadge').innerText = `${formatNumber(mtdTwTotal, 2)} ฿`;
+            document.getElementById('mtdTwPercentBadge').innerText = `${formatNumber(mtdTwPercent, 2)}%`;
+            document.getElementById('kpiMtdTw').innerText = `${formatNumber(mtdTwPercent, 2)}%`;
+
+            // 6. Build Exact Chat Report Format
+            const reportText =
+`วันที่ =${formattedDate}
+💰Sales = ${hasSales ? formatNumber(salesGross, 0) : ''} / ${hasSales && salesNet > 0 ? formatNumber(salesNet, 2) : ''}
+💸saleFood= ${hasFood && foodNet > 0 ? formatNumber(foodNet, 2) : ''}
+TC= ${tc}
+TA= ${hasTa ? formatNumber(ta, 2) : ''}
+
+👤FTE= ${fte > 0 ? fte : ''}
+COL ฿ = ${colBaht > 0 ? formatNumber(colBaht, 0) : ''}
+COL%= ${salesNet > 0 && colBaht > 0 ? formatNumber(colPercent, 2) : ''}%
+
+🍩ผลิต(pc)= ${produced}
+🚮TW/pc= ${twPc}
+💰TW/฿= ${hasTwBaht ? formatNumber(twBaht, 2) : ''}
+📈Tw(%)= ${foodNet > 0 && hasTwBaht ? formatNumber(twPercent, 2) : ''}%
+
+🎯Sale Food MTD= ${hasMtdSf && mtdSfNet > 0 ? formatNumber(mtdSfNet, 2) : ''}
+TW/฿ MTD= ${hasMtdTwTotal ? formatNumber(mtdTwTotal, 2) : ''}
+TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}%`;
+
+            outputReport.value = reportText;
+        }
+
+        /* =====================================================================
+           5. COPY, SAMPLE DATA, RESET & ROLLOVER ACTIONS
+        ===================================================================== */
+        let copyBtnTimer = null;
+        function copyReport() {
+            outputReport.focus();
+            outputReport.select();
+            outputReport.setSelectionRange(0, 99999);
+
+            try {
+                // Prioritize execCommand for iFrame compatibility
+                document.execCommand('copy');
+            } catch (err) {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(outputReport.value).catch(() => {});
+                }
+            }
+
+            // Visual button feedback
+            copyBtn.innerHTML = '<span>✅</span> คัดลอกเรียบร้อย!';
+            copyBtn.classList.remove('from-amber-500', 'to-orange-500', 'hover:from-amber-600', 'hover:to-orange-600');
+            copyBtn.classList.add('from-emerald-500', 'to-emerald-600');
+            showToast('คัดลอกรายงานเรียบร้อยแล้ว!');
+
+            if (copyBtnTimer) clearTimeout(copyBtnTimer);
+            copyBtnTimer = setTimeout(() => {
+                copyBtn.innerHTML = '<span>📋</span> คัดลอกรายงาน';
+                copyBtn.classList.remove('from-emerald-500', 'to-emerald-600');
+                copyBtn.classList.add('from-amber-500', 'to-orange-500', 'hover:from-amber-600', 'hover:to-orange-600');
+            }, 2200);
+        }
+
+        function loadSampleData() {
+            inputs.date.value = '2026-09-14';
+            inputs.sales.value = '9442';
+            inputs.food.value = '6246+1213+1094';
+            inputs.tc.value = '64';
+            inputs.ta.value = '147.53';
+            inputs.ft.value = '2';
+            inputs.ptCount.value = '1';
+            inputs.ptHours.value = '3';
+            inputs.produced.value = '379';
+            inputs.twPc.value = '1';
+            inputs.twBaht.value = '2.23';
+            inputs.mtdSf.value = '89323+19357+23852';
+            inputs.mtdTwPrev.value = '803.61';
+
+            calculate();
+            saveToLocalStorage();
+            showToast('โหลดข้อมูลตัวอย่างเรียบร้อย!');
+        }
+
+        function confirmReset() {
+            showModal(
+                'ล้างข้อมูลรายงาน?',
+                'ต้องการล้างข้อมูลยอดขายประจำวันนี้ใช่หรือไม่? (ยอดสะสม MTD และจำนวนพนักงานเริ่มต้นจะยังคงอยู่)',
+                () => {
+                    inputs.sales.value = '';
+                    inputs.food.value = '';
+                    inputs.tc.value = '';
+                    inputs.ta.value = '';
+                    inputs.produced.value = '';
+                    inputs.twPc.value = '';
+                    inputs.twBaht.value = '';
+
+                    calculate();
+                    saveToLocalStorage();
+                    showToast('ล้างข้อมูลวันนี้เรียบร้อยแล้ว');
+                }
+            );
+        }
+
+        function confirmRollover() {
+            showModal(
+                'ยกยอดสะสม (MTD) ไปวันถัดไป?',
+                'ระบบจะเลื่อนวันที่ไปวันพรุ่งนี้ (+1 วัน) ยกยอด TW/฿ MTD รวมวันนี้ไปเป็นยอดเมื่อวาน และล้างช่องยอดขายประจำวันให้พร้อมกรอกวันใหม่ ต้องการดำเนินการต่อหรือไม่?',
+                () => {
+                    // Compute current cumulative TW/฿ MTD
+                    const twBahtToday = parseFloat(inputs.twBaht.value) || 0;
+                    const mtdTwPrev = parseFloat(inputs.mtdTwPrev.value) || 0;
+                    const newMtdTwPrev = mtdTwPrev + twBahtToday;
+
+                    // Increment Date by +1 day safely in local time
+                    if (inputs.date.value) {
+                        const [y, m, d] = inputs.date.value.split('-').map(Number);
+                        const nextDate = new Date(y, m - 1, d + 1);
+                        inputs.date.value = `${nextDate.getFullYear()}-${pad2(nextDate.getMonth() + 1)}-${pad2(nextDate.getDate())}`;
+                    } else {
+                        inputs.date.value = getTodayISO();
+                    }
+
+                    // Rollover TW/฿ MTD into previous day's field
+                    inputs.mtdTwPrev.value = newMtdTwPrev > 0 ? newMtdTwPrev.toFixed(2) : '';
+
+                    // Clear daily fields
+                    inputs.sales.value = '';
+                    inputs.food.value = '';
+                    inputs.tc.value = '';
+                    inputs.ta.value = '';
+                    inputs.produced.value = '';
+                    inputs.twPc.value = '';
+                    inputs.twBaht.value = '';
+
+                    calculate();
+                    saveToLocalStorage();
+                    showToast('ยกยอด MTD ไปวันถัดไปเรียบร้อย!');
+                }
+            );
+        }
+
+        /* =====================================================================
+           6. LOCALSTORAGE PERSISTENCE
+        ===================================================================== */
+        function saveToLocalStorage() {
+            try {
+                const state = {};
+                Object.keys(inputs).forEach((key) => {
+                    state[key] = inputs[key].value;
+                });
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (err) {
+                console.warn('Unable to save to localStorage:', err);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (!saved) return;
+                const state = JSON.parse(saved);
+                Object.keys(inputs).forEach((key) => {
+                    if (state[key] !== undefined && state[key] !== null) {
+                        inputs[key].value = state[key];
+                    }
+                });
+            } catch (err) {
+                console.warn('Unable to load from localStorage:', err);
+            }
+        }
+
+        /* =====================================================================
+           7. NATIVE CAMERA + FULL-RES BOTTOM WHITE STRIP WATERMARK (BC6 + TIME)
+        ===================================================================== */
+        function triggerNativeCamera() {
+            cameraInput.click();
+        }
+
+        function formatCaptureDateTime(dateObj) {
+            const dd = pad2(dateObj.getDate());
+            const mm = pad2(dateObj.getMonth() + 1);
+            const yyyy = dateObj.getFullYear();
+            const hh = pad2(dateObj.getHours());
+            const min = pad2(dateObj.getMinutes());
+            const ss = pad2(dateObj.getSeconds());
+            return `${dd}/${mm}/${yyyy}  ${hh}:${min}:${ss}`;
+        }
+
+        cameraInput.addEventListener('change', (event) => {
+            const file = event.target.files && event.target.files[0];
+            // Reset input immediately so consecutive photos always trigger change event
+            cameraInput.value = '';
+            if (!file) return;
+
+            const capturedAt = new Date();
+            photoLoading.classList.remove('hidden');
+
+            const sourceUrl = URL.createObjectURL(file);
+            const img = new Image();
+
+            img.onload = () => {
+                try {
+                    const imgW = img.naturalWidth || img.width;
+                    const imgH = img.naturalHeight || img.height;
+
+                    // Proportional white bottom strip (approx 9%-11% of base dimension, balanced for portrait & landscape)
+                    const baseDim = Math.min(imgW, imgH);
+                    const stripHeight = Math.round(Math.min(Math.max(baseDim * 0.11, 88), 420));
+
+                    // Set canvas to full native resolution + separate bottom strip
+                    watermarkCanvas.width = imgW;
+                    watermarkCanvas.height = imgH + stripHeight;
+
+                    const ctx = watermarkCanvas.getContext('2d');
+
+                    // 1. Draw original photo untouched at full resolution on top
+                    ctx.drawImage(img, 0, 0, imgW, imgH);
+
+                    // 2. Draw solid white rectangular strip strictly below the photo
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, imgH, imgW, stripHeight);
+
+                    // 3. Draw crisp black text: "BC6" (left) & "DD/MM/YYYY  HH:mm:ss" (right)
+                    const branchLabel = 'BC6';
+                    const dateTimeLabel = formatCaptureDateTime(capturedAt);
+
+                    const padX = Math.round(imgW * 0.04);
+                    const centerY = imgH + (stripHeight / 2);
+
+                    let branchFontSize = Math.round(stripHeight * 0.56);
+                    let dateFontSize = Math.round(stripHeight * 0.36);
+
+                    // Auto-fit font sizes if the image is unusually narrow so texts never overlap
+                    ctx.font = `800 ${branchFontSize}px Inter, Sarabun, sans-serif`;
+                    let branchWidth = ctx.measureText(branchLabel).width;
+
+                    ctx.font = `600 ${dateFontSize}px Inter, Sarabun, sans-serif`;
+                    let dateWidth = ctx.measureText(dateTimeLabel).width;
+
+                    const maxContentWidth = imgW - (padX * 3);
+                    if (branchWidth + dateWidth > maxContentWidth && maxContentWidth > 0) {
+                        const scale = maxContentWidth / (branchWidth + dateWidth);
+                        branchFontSize = Math.max(18, Math.floor(branchFontSize * scale));
+                        dateFontSize = Math.max(14, Math.floor(dateFontSize * scale));
+                    }
+
+                    ctx.fillStyle = '#000000';
+                    ctx.textBaseline = 'middle';
+
+                    // Left: BC6
+                    ctx.textAlign = 'left';
+                    ctx.font = `800 ${branchFontSize}px Inter, Sarabun, sans-serif`;
+                    ctx.fillText(branchLabel, padX, centerY);
+
+                    // Right: Capture Date & Time
+                    ctx.textAlign = 'right';
+                    ctx.font = `600 ${dateFontSize}px Inter, Sarabun, sans-serif`;
+                    ctx.fillText(dateTimeLabel, imgW - padX, centerY);
+
+                    // Convert canvas to high-quality JPEG Blob (0.95)
+                    watermarkCanvas.toBlob((blob) => {
+                        URL.revokeObjectURL(sourceUrl);
+                        photoLoading.classList.add('hidden');
+
+                        if (!blob) {
+                            showToast('ไม่สามารถสร้างไฟล์รูปภาพได้ กรุณาลองใหม่');
+                            return;
+                        }
+
+                        currentWatermarkedBlob = blob;
+
+                        if (currentPreviewObjectUrl) {
+                            URL.revokeObjectURL(currentPreviewObjectUrl);
+                        }
+                        currentPreviewObjectUrl = URL.createObjectURL(blob);
+                        photoPreview.src = currentPreviewObjectUrl;
+
+                        photoMetaBadge.innerText = `${imgW}×${imgH + stripHeight}px`;
+                        previewContainer.classList.remove('hidden');
+                        showToast('ฝังแถบ BC6 และเวลาเรียบร้อย!');
+                    }, 'image/jpeg', 0.95);
+                } catch (err) {
+                    URL.revokeObjectURL(sourceUrl);
+                    photoLoading.classList.add('hidden');
+                    console.error('Watermark rendering failed:', err);
+                    showToast('เกิดข้อผิดพลาดในการประมวลผลภาพ');
+                }
+            };
+
+            img.onerror = () => {
+                URL.revokeObjectURL(sourceUrl);
+                photoLoading.classList.add('hidden');
+                showToast('ไม่สามารถอ่านไฟล์รูปภาพได้');
+            };
+
+            img.src = sourceUrl;
+        });
+
+        // Save photo with a 100% unique filename every click to prevent "Download again?" prompts
+        let saveBtnTimer = null;
+        function saveWatermarkedPhoto() {
+            if (!currentWatermarkedBlob) {
+                showToast('กรุณาถ่ายรูปก่อนบันทึก');
+                return;
+            }
+
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = pad2(now.getMonth() + 1);
+            const dd = pad2(now.getDate());
+            const hh = pad2(now.getHours());
+            const min = pad2(now.getMinutes());
+            const ss = pad2(now.getSeconds());
+            const ms = String(now.getMilliseconds()).padStart(3, '0');
+            const rand = Math.floor(10 + Math.random() * 90);
+
+            const uniqueFilename = `BC6_${yyyy}${mm}${dd}_${hh}${min}${ss}_${ms}${rand}.jpg`;
+
+            const downloadUrl = URL.createObjectURL(currentWatermarkedBlob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = uniqueFilename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // Clean up object URL after browser initiates the download
+            setTimeout(() => {
+                URL.revokeObjectURL(downloadUrl);
+            }, 5000);
+
+            // Instant visual feedback on Save button
+            btnSavePhoto.innerHTML = '<span>✅</span> บันทึกรูปเรียบร้อย!';
+            btnSavePhoto.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+            btnSavePhoto.classList.add('bg-teal-600');
+            showToast(`บันทึกรูป ${uniqueFilename} แล้ว!`);
+
+            if (saveBtnTimer) clearTimeout(saveBtnTimer);
+            saveBtnTimer = setTimeout(() => {
+                btnSavePhoto.innerHTML = '<span>💾</span> บันทึกรูปลงเครื่อง';
+                btnSavePhoto.classList.remove('bg-teal-600');
+                btnSavePhoto.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+            }, 2200);
+        }
+
+        /* =====================================================================
+           8. INITIALIZATION
+        ===================================================================== */
+        document.addEventListener('DOMContentLoaded', () => {
+            // Restore saved values first, then ensure date defaults to today if empty
             loadFromLocalStorage();
+            if (!inputs.date.value) {
+                inputs.date.value = getTodayISO();
+            }
 
-            // Bind Event Listeners
-            const allInputs = [
-                dateInput, salesInput, foodInput, tcInput, taInput,
-                ftInput, ptCountInput, ptHoursInput, producedInput,
-                twPcInput, twBahtInput, mtdSfInput, mtdTwPrevInput
-            ];
-
-            allInputs.forEach(input => {
-                input.addEventListener('input', () => {
+            // Attach real-time calculation & auto-save listeners
+            Object.values(inputs).forEach((el) => {
+                el.addEventListener('input', () => {
                     calculate();
                     saveToLocalStorage();
                 });
@@ -449,310 +945,6 @@
 
             calculate();
         });
-
-        // Main Calculation Engine
-        function calculate() {
-            let formattedDate = '-';
-            if (dateInput.value) {
-                const parts = dateInput.value.split('-');
-                if (parts.length === 3) {
-                    formattedDate = `${parts[2]}/${parts[1]}/${parts[0].slice(-2)}`;
-                }
-            }
-
-            // 1. Sales & VAT Calculation
-            const salesGross = parseMathString(salesInput.value);
-            const salesNet = salesGross > 0 ? (salesGross / 1.07) : 0;
-
-            const foodGross = parseMathString(foodInput.value);
-            const foodNet = foodGross > 0 ? (foodGross / 1.07) : 0;
-
-            const tc = tcInput.value.trim();
-            const ta = parseFloat(taInput.value) || 0;
-
-            // Update Badges
-            document.getElementById('salesNetBadge').innerText = salesNet > 0 ? `${formatNum(salesNet, 2)} ฿` : '0.00 ฿';
-            document.getElementById('foodNetBadge').innerText = foodNet > 0 ? `${formatNum(foodNet, 2)} ฿` : '0.00 ฿';
-
-            // 2. Staffing & COL Calculation
-            const ftCount = parseFloat(ftInput.value) || 0;
-            const ptCount = parseFloat(ptCountInput.value) || 0;
-            const ptHours = parseFloat(ptHoursInput.value) || 0;
-
-            const fte = ftCount + ptCount;
-            const colBaht = (ftCount * 450) + (ptHours * 47);
-            const colPercent = salesNet > 0 ? (colBaht / salesNet) * 100 : 0;
-
-            document.getElementById('fteBadge').innerText = fte;
-            document.getElementById('colBahtBadge').innerText = `${formatNum(colBaht, 0)} ฿`;
-            document.getElementById('colPercentBadge').innerText = `${formatNum(colPercent, 2)}%`;
-            document.getElementById('kpiCol').innerText = `${formatNum(colPercent, 2)}%`;
-
-            // 3. Production & Wastage
-            const produced = producedInput.value.trim();
-            const twPc = twPcInput.value.trim();
-            const twBahtRaw = twBahtInput.value.trim();
-            const twBaht = parseFloat(twBahtRaw) || 0;
-            const twPercent = foodNet > 0 && twBaht > 0 ? (twBaht / foodNet) * 100 : 0;
-
-            document.getElementById('twPercentBadge').innerText = `${formatNum(twPercent, 2)}%`;
-
-            // 4. MTD Calculations
-            const mtdSfRaw = parseMathString(mtdSfInput.value);
-            const mtdSfNet = mtdSfRaw > 0 ? (mtdSfRaw / 1.07) : 0;
-
-            const mtdTwPrev = parseFloat(mtdTwPrevInput.value) || 0;
-            
-            let mtdTwTotal = 0;
-            if (mtdTwPrevInput.value.trim() !== '' || twBahtRaw !== '') {
-                mtdTwTotal = mtdTwPrev + twBaht;
-            }
-
-            const mtdTwPercent = mtdSfNet > 0 && mtdTwTotal > 0 ? (mtdTwTotal / mtdSfNet) * 100 : 0;
-
-            document.getElementById('mtdSfNetBadge').innerText = mtdSfNet > 0 ? `${formatNum(mtdSfNet, 2)} ฿` : '0.00 ฿';
-            document.getElementById('mtdTwTotalBadge').innerText = `${formatNum(mtdTwTotal, 2)} ฿`;
-            document.getElementById('mtdTwPercentBadge').innerText = `${formatNum(mtdTwPercent, 2)}%`;
-            document.getElementById('kpiMtdTw').innerText = `${formatNum(mtdTwPercent, 2)}%`;
-
-            // Formatted Text Output Template
-            const reportText = 
-`วันที่ =${formattedDate}
-💰Sales = ${salesInput.value.trim() ? formatNum(salesGross, 0) : ''} / ${salesNet ? formatNum(salesNet, 2) : ''}
-💸saleFood= ${foodNet ? formatNum(foodNet, 2) : ''}
-TC= ${tc}
-TA= ${ta ? formatNum(ta, 2) : ''}
-
-👤FTE= ${fte ? fte : ''}
-COL ฿ = ${colBaht ? formatNum(colBaht, 0) : ''}
-COL%= ${colPercent ? formatNum(colPercent, 2) + '%' : '%'}
-
-🍩ผลิต(pc)= ${produced}
-🚮TW/pc= ${twPc}
-💰TW/฿= ${twBahtRaw !== '' ? formatNum(twBaht, 2) : ''}
-📈Tw(%)= ${twPercent ? formatNum(twPercent, 2) + '%' : '%'}
-
-🎯Sale Food MTD= ${mtdSfNet ? formatNum(mtdSfNet, 2) : ''}
-TW/฿ MTD= ${mtdTwTotal ? formatNum(mtdTwTotal, 2) : ''}
-TW (%) MTD=${mtdTwPercent ? formatNum(mtdTwPercent, 2) + '%' : '%'}`;
-
-            outputReport.value = reportText;
-        }
-
-        // Copy Function
-        function copyReport() {
-            outputReport.select();
-            outputReport.setSelectionRange(0, 99999); // Mobile compatibility
-
-            try {
-                document.execCommand('copy');
-                showToast("คัดลอกรายงานเรียบร้อยแล้ว!");
-            } catch (err) {
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(outputReport.value).then(() => {
-                        showToast("คัดลอกรายงานเรียบร้อยแล้ว!");
-                    });
-                }
-            }
-        }
-
-        // Load Sample Preset (14/09/26)
-        function loadSampleData() {
-            dateInput.value = "2026-09-14";
-            salesInput.value = "9442";
-            foodInput.value = "6246+1213+1094";
-            tcInput.value = "64";
-            taInput.value = "147.53";
-            ftInput.value = "2";
-            ptCountInput.value = "1";
-            ptHoursInput.value = "3";
-            producedInput.value = "379";
-            twPcInput.value = "1";
-            twBahtInput.value = "2.23";
-            mtdSfInput.value = "89323+19357+23852";
-            mtdTwPrevInput.value = "803.61";
-
-            calculate();
-            saveToLocalStorage();
-            showToast("โหลดข้อมูลตัวอย่างเรียบร้อย!");
-        }
-
-        // Confirm & Reset
-        function confirmReset() {
-            showModal(
-                "ล้างข้อมูลวันนี้?",
-                "คุณต้องการล้างข้อมูลการขายประจำวันนี้หรือไม่? (ยอดสะสม MTD จะยังคงอยู่)",
-                () => {
-                    salesInput.value = "";
-                    foodInput.value = "";
-                    tcInput.value = "";
-                    taInput.value = "";
-                    producedInput.value = "";
-                    twPcInput.value = "";
-                    twBahtInput.value = "";
-
-                    calculate();
-                    saveToLocalStorage();
-                    showToast("ล้างข้อมูลเรียบร้อยแล้ว");
-                }
-            );
-        }
-
-        // Rollover to Next Day
-        function confirmRollover() {
-            showModal(
-                "ยกยอดสะสม (MTD) ไปวันถัดไป?",
-                "ระบบจะนำยอดทิ้งสะสมวันนี้ไปตั้งเป็นยอดเมื่อวานของวันถัดไป และบวกยอดขายอาหารสะสมให้พร้อมเริ่มวันใหม่ คุณต้องการดำเนินการต่อหรือไม่?",
-                () => {
-                    // Calculate current totals
-                    const foodGrossToday = parseMathString(foodInput.value);
-                    const mtdSfRawPrev = parseMathString(mtdSfInput.value);
-                    const newMtdSfRaw = mtdSfRawPrev + foodGrossToday;
-
-                    const twBahtToday = parseFloat(twBahtInput.value) || 0;
-                    const mtdTwPrev = parseFloat(mtdTwPrevInput.value) || 0;
-                    const newMtdTwTotal = mtdTwPrev + twBahtToday;
-
-                    // Increment Date by 1 day
-                    if (dateInput.value) {
-                        const currentDate = new Date(dateInput.value);
-                        currentDate.setDate(currentDate.getDate() + 1);
-                        const nextY = currentDate.getFullYear();
-                        const nextM = String(currentDate.getMonth() + 1).padStart(2, '0');
-                        const nextD = String(currentDate.getDate()).padStart(2, '0');
-                        dateInput.value = `${nextY}-${nextM}-${nextD}`;
-                    }
-
-                    // Set Rolled over values
-                    mtdSfInput.value = newMtdSfRaw > 0 ? newMtdSfRaw.toFixed(2) : "";
-                    mtdTwPrevInput.value = newMtdTwTotal > 0 ? newMtdTwTotal.toFixed(2) : "";
-
-                    // Reset today's inputs
-                    salesInput.value = "";
-                    foodInput.value = "";
-                    tcInput.value = "";
-                    taInput.value = "";
-                    producedInput.value = "";
-                    twPcInput.value = "";
-                    twBahtInput.value = "";
-
-                    calculate();
-                    saveToLocalStorage();
-                    showToast("ยกยอด MTD ไปวันถัดไปเรียบร้อยแล้ว!");
-                }
-            );
-        }
-
-        // LocalStorage Save & Load
-        function saveToLocalStorage() {
-            const data = {
-                date: dateInput.value,
-                sales: salesInput.value,
-                food: foodInput.value,
-                tc: tcInput.value,
-                ta: taInput.value,
-                ft: ftInput.value,
-                ptCount: ptCountInput.value,
-                ptHours: ptHoursInput.value,
-                produced: producedInput.value,
-                twPc: twPcInput.value,
-                twBaht: twBahtInput.value,
-                mtdSf: mtdSfInput.value,
-                mtdTwPrev: mtdTwPrevInput.value
-            };
-            localStorage.setItem('donut_report_data', JSON.stringify(data));
-        }
-
-        function loadFromLocalStorage() {
-            const saved = localStorage.getItem('donut_report_data');
-            if (!saved) return;
-            try {
-                const data = JSON.parse(saved);
-                if (data.date) dateInput.value = data.date;
-                if (data.sales !== undefined) salesInput.value = data.sales;
-                if (data.food !== undefined) foodInput.value = data.food;
-                if (data.tc !== undefined) tcInput.value = data.tc;
-                if (data.ta !== undefined) taInput.value = data.ta;
-                if (data.ft !== undefined) ftInput.value = data.ft;
-                if (data.ptCount !== undefined) ptCountInput.value = data.ptCount;
-                if (data.ptHours !== undefined) ptHoursInput.value = data.ptHours;
-                if (data.produced !== undefined) producedInput.value = data.produced;
-                if (data.twPc !== undefined) twPcInput.value = data.twPc;
-                if (data.twBaht !== undefined) twBahtInput.value = data.twBaht;
-                if (data.mtdSf !== undefined) mtdSfInput.value = data.mtdSf;
-                if (data.mtdTwPrev !== undefined) mtdTwPrevInput.value = data.mtdTwPrev;
-            } catch (e) {
-                console.error("Failed to load saved report state", e);
-            }
-        }
-
-        // --- Camera & Watermark Logic ---
-        const cameraInput = document.getElementById('cameraInput');
-        const canvas = document.getElementById('cameraCanvas');
-        const photoPreview = document.getElementById('photoPreview');
-        const previewContainer = document.getElementById('previewContainer');
-        const btnStartCamera = document.getElementById('btnStartCamera');
-
-        // Listen for file selection (native camera capture)
-        cameraInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const img = new Image();
-            img.onload = function() {
-                const ctx = canvas.getContext('2d');
-                
-                // กำหนดความสูงของแถบสีขาวด้านล่าง (ประมาณ 10% ของรูป หรืออย่างน้อย 150px สำหรับรูปชัดๆ)
-                const bannerHeight = Math.max(img.height * 0.1, 150);
-                
-                // ตั้งค่าความละเอียด Canvas ตามรูปจริง + พื้นที่แถบสีขาว
-                canvas.width = img.width;
-                canvas.height = img.height + bannerHeight;
-                
-                // 1. วาดรูปจริงแบบ Full Resolution (ไว้ส่วนบน)
-                ctx.drawImage(img, 0, 0, img.width, img.height);
-                
-                // 2. วาดพื้นที่สี่เหลี่ยมสีขาวด้านล่างสุด
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, img.height, canvas.width, bannerHeight);
-                
-                // 3. เตรียมข้อความลายน้ำ "BC6"
-                const branchText = "BC6";
-
-                // 4. วาดตัวหนังสือสีดำลงในแถบสีขาว
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.font = `bold ${Math.floor(bannerHeight * 0.7)}px Inter, sans-serif`;
-                ctx.fillStyle = "#000000";
-                
-                // วางข้อความให้อยู่กึ่งกลางของแถบสีขาวด้านล่าง
-                const textX = canvas.width / 2;
-                const textY = img.height + (bannerHeight / 2) + (bannerHeight * 0.05);
-                ctx.fillText(branchText, textX, textY);
-
-                // แสดงผลรูปลงในหน้าจอ Preview (ใช้คุณภาพ 95%)
-                photoPreview.src = canvas.toDataURL('image/jpeg', 0.95);
-                
-                previewContainer.classList.remove('hidden');
-                
-                // คืนค่า input กลับเผื่อถ่ายรูปใหม่
-                cameraInput.value = ""; 
-            };
-            
-            // โหลดรูปภาพจากไฟล์ที่ถ่าย
-            img.src = URL.createObjectURL(file);
-        });
-
-        function downloadPhoto() {
-            if (!photoPreview.src) return;
-            const link = document.createElement('a');
-            const dateStr = dateInput.value || 'Photo';
-            link.download = `BC6_${dateStr}.jpg`;
-            link.href = photoPreview.src;
-            link.click();
-            showToast("บันทึกรูปภาพเรียบร้อยแล้ว!");
-        }
-
     </script>
 </body>
 </html>
