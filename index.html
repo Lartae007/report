@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Donut Shop BC6 - ระบบสรุปรายงานยอดขายประจำวัน & ถ่ายรูปลายนํ้า</title>
+    <title>Donut Shop BC6 - รายงานยอดขายประจำวัน & ถ่ายรูปลายนํ้า</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Sarabun & Inter -->
@@ -17,30 +17,14 @@
                     fontFamily: {
                         sans: ['Sarabun', 'Inter', 'sans-serif'],
                         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
-                    },
-                    colors: {
-                        cream: '#FFFBF0',
-                        donut: {
-                            50: '#FFFBEB',
-                            100: '#FEF3C7',
-                            200: '#FDE68A',
-                            300: '#FCD34D',
-                            400: '#FBBF24',
-                            500: '#F59E0B',
-                            600: '#D97706',
-                            700: '#B45309',
-                            800: '#92400E',
-                            900: '#78350F'
-                        }
                     }
                 }
             }
         };
     </script>
     <style>
-        /* Warm Donut Shop Background & Smooth Scrollbar */
         body {
-            background: linear-gradient(145deg, #FFFDF5 0%, #FEF3C7 55%, #FFEDD5 100%);
+            background: linear-gradient(150deg, #FFFDF5 0%, #FEF3C7 55%, #FFEDD5 100%);
             min-height: 100vh;
             -webkit-tap-highlight-color: transparent;
         }
@@ -64,16 +48,13 @@
 </head>
 <body class="text-slate-800 antialiased pb-12 overflow-x-hidden">
 
-    <!-- Toast Notification -->
+    <!-- Toast Notification (Replaces alert) -->
     <div id="toast" role="status" aria-live="polite"
          class="fixed top-4 right-4 left-4 sm:left-auto z-50 transform -translate-y-32 opacity-0 transition-all duration-300 ease-out bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center justify-center sm:justify-start gap-2.5 font-semibold text-sm pointer-events-none">
-        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
-        </svg>
-        <span id="toastMsg">ดำเนินการเรียบร้อย!</span>
+        <span id="toastMsg">✅ ดำเนินการเรียบร้อย!</span>
     </div>
 
-    <!-- Custom Confirmation Modal (Replaces native alert/confirm) -->
+    <!-- Custom Confirmation Modal (Replaces confirm) -->
     <div id="modalOverlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-amber-200">
             <div class="flex items-center gap-3 mb-2">
@@ -94,11 +75,11 @@
         </div>
     </div>
 
-    <!-- Main App Wrapper -->
-    <div class="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-5">
+    <!-- Main App Container -->
+    <div class="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-5 space-y-6">
 
         <!-- Header -->
-        <header class="glass-card rounded-3xl p-4 sm:p-5 mb-6 shadow-md border-b-4 border-amber-500 flex flex-col md:flex-row items-center justify-between gap-4">
+        <header class="glass-card rounded-3xl p-4 sm:p-5 shadow-md border-b-4 border-amber-500 flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-3.5 w-full md:w-auto">
                 <div class="w-12 h-12 shrink-0 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-amber-500/25 text-white">
                     🍩
@@ -108,7 +89,7 @@
                         <h1 class="text-lg sm:text-2xl font-extrabold text-amber-900 leading-tight">Donut Shop Daily Report</h1>
                         <span class="px-2.5 py-0.5 text-xs font-extrabold bg-amber-900 text-amber-100 rounded-lg tracking-wide">สาขา BC6</span>
                     </div>
-                    <p class="text-xs sm:text-sm text-amber-700/90 font-medium mt-0.5">สรุปรายงานยอดขายอัตโนมัติ & กล้องถ่ายรูประบุสาขาพร้อมเวลา</p>
+                    <p class="text-xs sm:text-sm text-amber-700/90 font-medium mt-0.5">คำนวณสรุปรายงานยอดขายประจำวัน & ถ่ายรูประบุสาขา BC6</p>
                 </div>
             </div>
 
@@ -120,23 +101,23 @@
                 </button>
                 <button type="button" onclick="confirmReset()"
                         class="flex-1 md:flex-none px-4 py-2.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 font-bold text-xs sm:text-sm rounded-xl transition flex items-center justify-center gap-1.5 border border-rose-200/80 shadow-sm">
-                    <span>🔄</span> ล้างข้อมูล
+                    <span>🗑️</span> ล้างข้อมูลวันนี้
                 </button>
             </div>
         </header>
 
-        <!-- Main Responsive Grid -->
+        <!-- PART 1: Daily Sales Report Calculator Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-            <!-- LEFT COLUMN: Form Inputs & Native Camera Tool -->
+            <!-- Left Column: Form Inputs -->
             <div class="lg:col-span-7 space-y-5">
 
-                <!-- Section 1: Daily Sales & Food -->
+                <!-- Section 1: Sales & Sale Food -->
                 <section class="glass-card rounded-3xl p-5 shadow-sm space-y-4">
-                    <div class="flex items-center justify-between border-b border-amber-100 pb-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-100 pb-3">
                         <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
                             <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm">💰</span>
-                            1. ยอดขายประจำวัน (Sales & Food)
+                            1. ยอดขายประจำวัน (Sales & Sale Food)
                         </h2>
                         <span class="text-[11px] bg-amber-50 text-amber-800 px-2.5 py-1 rounded-full font-semibold border border-amber-200">หัก VAT 7% อัตโนมัติ</span>
                     </div>
@@ -149,7 +130,7 @@
                         </div>
                         <div>
                             <label for="salesInput" class="block text-xs font-bold text-slate-700 mb-1.5">Sub Total Sales (รวม VAT)</label>
-                            <input type="text" inputmode="text" id="salesInput" placeholder="เช่น 9442 หรือ 8000+1442"
+                            <input type="text" inputmode="text" id="salesInput" placeholder="เช่น 9442 หรือ 5000+4442"
                                    class="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
                             <div class="flex justify-between text-xs text-amber-800 mt-1.5 px-0.5">
                                 <span>ยอดสุทธิ (Net / 1.07):</span>
@@ -159,12 +140,12 @@
                     </div>
 
                     <div>
-                        <label for="foodInput" class="block text-xs font-bold text-slate-700 mb-1.5">ยอดขายอาหาร Sale Food (ข้อ 1, 4, 55 รวม VAT)</label>
+                        <label for="foodInput" class="block text-xs font-bold text-slate-700 mb-1.5">Sale Food (ข้อ 1, 4, 55 รวม VAT)</label>
                         <input type="text" inputmode="text" id="foodInput" placeholder="เช่น 6246+1213+1094"
                                class="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-400 focus:border-amber-500 outline-none transition">
                         <div class="flex flex-wrap justify-between items-center gap-1 text-xs text-amber-800 mt-1.5 px-0.5">
                             <span class="text-slate-500">* พิมพ์เครื่องหมาย + บวกเลขต่อกันได้เลย</span>
-                            <span>Food Net: <strong id="foodNetBadge" class="text-slate-900">0.00 ฿</strong></span>
+                            <span>Sale Food Net: <strong id="foodNetBadge" class="text-slate-900">0.00 ฿</strong></span>
                         </div>
                     </div>
 
@@ -290,84 +271,26 @@
                         <div>TW (%) MTD: <span id="mtdTwPercentBadge" class="text-amber-900 text-sm font-extrabold">0.00%</span></div>
                     </div>
                 </section>
-
-                <!-- Section 5: Native Mobile Camera + Non-Overlapping BC6 & DateTime Watermark -->
-                <section class="glass-card rounded-3xl p-5 shadow-md space-y-4 border-2 border-amber-400">
-                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-100 pb-3">
-                        <h2 class="text-base font-bold text-amber-900 flex items-center gap-2">
-                            <span class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-sm shadow-sm">📷</span>
-                            5. ถ่ายรูประบุสาขา BC6 + วันที่และเวลา
-                        </h2>
-                        <span class="text-[11px] bg-slate-900 text-white px-2.5 py-1 rounded-full font-semibold">ความละเอียดเต็ม • แถบขาวแยกด้านล่าง</span>
-                    </div>
-
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        เปิดกล้องมือถือโดยตรง (ซูมได้ ปรับแสงได้ตามปกติ) ระบบจะเพิ่มแถบสีขาวด้านล่างแยกออกจากภาพถ่าย พร้อมประทับคำว่า <strong class="text-slate-900">BC6</strong> และ <strong class="text-slate-900">วันที่-เวลาที่ถ่าย</strong> ให้อัตโนมัติโดยไม่บังข้อมูลในภาพ
-                    </p>
-
-                    <!-- Hidden Native Camera Input -->
-                    <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
-
-                    <!-- Prominent Open Native Camera Button -->
-                    <button type="button" id="btnOpenCamera" onclick="triggerNativeCamera()"
-                            class="w-full py-4 px-4 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-black active:scale-[0.98] text-white font-bold rounded-2xl shadow-lg transition flex items-center justify-center gap-2.5 text-sm sm:text-base">
-                        <span class="text-xl">📷</span>
-                        <span>เปิดกล้องมือถือถ่ายรูป (สาขา BC6)</span>
-                    </button>
-
-                    <!-- Processing Indicator -->
-                    <div id="photoLoading" class="hidden py-4 text-center text-sm font-semibold text-amber-800 bg-amber-50 rounded-2xl border border-amber-200 animate-pulse">
-                        ⏳ กำลังประมวลผลภาพความละเอียดสูงและฝังแถบ BC6...
-                    </div>
-
-                    <!-- Live Preview & Unique-Filename Save Controls -->
-                    <div id="previewContainer" class="hidden space-y-3.5 pt-1">
-                        <div class="flex items-center justify-between text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3.5 py-2 rounded-xl">
-                            <span>✅ พร้อมบันทึกและส่งเข้า LINE</span>
-                            <span id="photoMetaBadge" class="text-emerald-800 font-mono text-[11px]"></span>
-                        </div>
-
-                        <div class="bg-slate-100 rounded-2xl p-2 border border-amber-300 shadow-inner">
-                            <img id="photoPreview" alt="ตัวอย่างภาพถ่ายพร้อมลายน้ำ BC6"
-                                 class="w-full h-auto max-h-[520px] object-contain rounded-xl mx-auto shadow-sm">
-                        </div>
-
-                        <!-- Offscreen Canvas for Full Native Resolution Processing -->
-                        <canvas id="watermarkCanvas" class="hidden"></canvas>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                            <button type="button" onclick="triggerNativeCamera()"
-                                    class="py-3.5 px-4 bg-slate-200 hover:bg-slate-300 active:scale-[0.98] text-slate-800 font-bold rounded-xl text-sm transition flex items-center justify-center gap-1.5">
-                                <span>🔄</span> ถ่ายรูปใหม่
-                            </button>
-                            <button type="button" id="btnSavePhoto" onclick="saveWatermarkedPhoto()"
-                                    class="sm:col-span-2 py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold rounded-xl shadow-md shadow-emerald-600/25 text-sm sm:text-base transition flex items-center justify-center gap-2">
-                                <span>💾</span> บันทึกรูปลงเครื่อง
-                            </button>
-                        </div>
-                    </div>
-                </section>
-
             </div>
 
-            <!-- RIGHT COLUMN: KPI Badges & Final Report Output -->
+            <!-- Right Column: KPIs & Exact Output Report Preview -->
             <div class="lg:col-span-5 space-y-5 lg:sticky lg:top-6">
 
-                <!-- Quick KPI Summary -->
+                <!-- Quick KPI Cards -->
                 <div class="grid grid-cols-2 gap-3">
                     <div class="glass-card p-4 rounded-2xl shadow-sm">
                         <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">COL % (ค่าแรง)</span>
                         <div id="kpiCol" class="text-2xl font-extrabold text-amber-600 mt-1">0.00%</div>
-                        <span class="text-[11px] text-slate-400">คำนวณจากยอดขาย Net</span>
+                        <span class="text-[11px] text-slate-400">เทียบยอดขาย Net</span>
                     </div>
                     <div class="glass-card p-4 rounded-2xl shadow-sm">
                         <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">TW (%) MTD</span>
                         <div id="kpiMtdTw" class="text-2xl font-extrabold text-emerald-600 mt-1">0.00%</div>
-                        <span class="text-[11px] text-slate-400">ยอดทิ้งสะสมประจำเดือน</span>
+                        <span class="text-[11px] text-slate-400">ของเสียสะสมเดือนนี้</span>
                     </div>
                 </div>
 
-                <!-- Report Output Card -->
+                <!-- Output Report Card -->
                 <section class="glass-card rounded-3xl p-5 shadow-xl border-t-4 border-amber-500 space-y-4">
                     <div class="flex items-center justify-between">
                         <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
@@ -379,7 +302,7 @@
                     <textarea id="outputReport" readonly rows="17"
                               class="w-full p-4 bg-slate-900 text-amber-200 font-mono text-xs sm:text-sm rounded-2xl border border-slate-700 shadow-inner focus:outline-none resize-none leading-relaxed select-all"></textarea>
 
-                    <!-- Primary Action Buttons -->
+                    <!-- Utility Buttons -->
                     <div class="space-y-2.5">
                         <button type="button" id="copyBtn" onclick="copyReport()"
                                 class="w-full py-4 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-white font-bold rounded-2xl shadow-lg shadow-amber-500/30 transition flex items-center justify-center gap-2 text-base">
@@ -387,25 +310,113 @@
                         </button>
 
                         <button type="button" onclick="confirmRollover()"
-                                class="w-full py-3 px-4 bg-amber-100 hover:bg-amber-200 active:scale-[0.98] text-amber-900 font-bold rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 border border-amber-300">
-                            <span>⏩</span> ยกยอดสะสม (MTD) ไปวันถัดไป
+                                class="w-full py-3.5 px-4 bg-amber-100 hover:bg-amber-200 active:scale-[0.98] text-amber-900 font-bold rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 border border-amber-300">
+                            <span>⏭️</span> ยกยอดสะสม (MTD) ไปวันถัดไป
+                        </button>
+
+                        <button type="button" onclick="confirmReset()"
+                                class="w-full py-3 px-4 bg-rose-50 hover:bg-rose-100 active:scale-[0.98] text-rose-700 font-bold rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 border border-rose-200">
+                            <span>🗑️</span> ล้างข้อมูลวันนี้
                         </button>
                     </div>
                 </section>
+            </div>
+        </div>
 
-                <p class="text-center text-xs text-amber-900/70 font-medium">
-                    🍩 Donut Shop BC6 • บันทึกข้อมูลอัตโนมัติในเครื่องของคุณ
+        <!-- PART 2: Native Mobile Camera & Branch BC6 Watermark Tool (Bottom Section) -->
+        <section class="glass-card rounded-3xl p-5 sm:p-6 shadow-xl border-2 border-amber-400 space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-100 pb-3.5">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center text-xl shadow-md">📸</span>
+                    <div>
+                        <h2 class="text-base sm:text-lg font-extrabold text-amber-950">กล้องถ่ายรูประบุสาขา BC6</h2>
+                        <p class="text-xs text-amber-800/80">แถบสีขาวแยกด้านล่าง ไม่บังภาพถ่ายเดิม • ความละเอียดเต็มจากกล้องมือถือ</p>
+                    </div>
+                </div>
+                <span class="text-[11px] bg-slate-900 text-white px-3 py-1 rounded-full font-bold tracking-wide">BC6 Watermark</span>
+            </div>
+
+            <!-- Prominent Segmented Selector: Show Date & Time vs BC6 Only -->
+            <div class="space-y-2">
+                <span class="block text-xs font-bold text-slate-700">เลือกรูปแบบลายน้ำด้านล่างรูปภาพ:</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-1.5 bg-amber-100/80 rounded-2xl border border-amber-200">
+                    <button type="button" id="modeWithTimeBtn" onclick="setWatermarkMode(true)"
+                            class="py-3.5 px-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-sm">
+                        <span>🕒</span> แสดงวันที่และเวลา
+                    </button>
+                    <button type="button" id="modeNoTimeBtn" onclick="setWatermarkMode(false)"
+                            class="py-3.5 px-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+                        <span>🏷️</span> เฉพาะ BC6 (ไม่แสดงเวลา)
+                    </button>
+                </div>
+                <p id="modeHintText" class="text-xs text-slate-500 px-1">
+                    แถบสีขาวด้านล่างจะแสดง <strong class="text-slate-800">BC6</strong> (ซ้าย) และ <strong class="text-slate-800">วันที่-เวลาที่ถ่าย</strong> (ขวา) — เปลี่ยนโหมดได้ทันทีแม้ถ่ายรูปไปแล้ว
                 </p>
             </div>
 
-        </div>
+            <!-- Hidden Native File Inputs (Camera + Gallery) -->
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+            <input type="file" id="galleryInput" accept="image/*" class="hidden">
+
+            <!-- Camera & Gallery Buttons -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button type="button" onclick="triggerNativeCamera()"
+                        class="sm:col-span-2 py-4 px-5 bg-gradient-to-r from-slate-800 to-slate-950 hover:from-slate-900 hover:to-black active:scale-[0.98] text-white font-bold rounded-2xl shadow-lg transition flex items-center justify-center gap-2.5 text-base">
+                    <span class="text-xl">📸</span>
+                    <span>ถ่ายรูป (กล้องมือถือ)</span>
+                </button>
+                <button type="button" onclick="triggerGalleryPicker()"
+                        class="py-4 px-5 bg-amber-100 hover:bg-amber-200 active:scale-[0.98] text-amber-950 font-bold rounded-2xl border border-amber-300 shadow-sm transition flex items-center justify-center gap-2 text-sm sm:text-base">
+                    <span class="text-lg">🖼️</span>
+                    <span>เลือกรูปจากอัลบั้ม</span>
+                </button>
+            </div>
+
+            <!-- Processing Spinner -->
+            <div id="photoLoading" class="hidden py-4 text-center text-sm font-bold text-amber-800 bg-amber-50 rounded-2xl border border-amber-200 animate-pulse">
+                ⏳ กำลังสร้างภาพความละเอียดเต็มพร้อมแถบ BC6...
+            </div>
+
+            <!-- Live Processed Preview & Save Action -->
+            <div id="previewContainer" class="hidden space-y-4 pt-2 border-t border-amber-100">
+                <div class="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-4 py-2.5 rounded-xl">
+                    <span>✅ ตัวอย่างรูปพร้อมส่ง LINE (สลับโหมดเวลาด้านบนได้ทันที)</span>
+                    <span id="photoMetaBadge" class="font-mono text-[11px] bg-white/80 px-2 py-0.5 rounded-md border border-emerald-200"></span>
+                </div>
+
+                <div class="bg-slate-200/80 rounded-2xl p-2.5 border border-amber-300 shadow-inner">
+                    <img id="photoPreview" alt="ตัวอย่างรูปถ่ายพร้อมแถบ BC6"
+                         class="w-full h-auto max-h-[560px] object-contain rounded-xl mx-auto shadow-md bg-white">
+                </div>
+
+                <!-- Hidden High-Resolution Canvas -->
+                <canvas id="watermarkCanvas" class="hidden"></canvas>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button type="button" onclick="triggerNativeCamera()"
+                            class="py-3.5 px-4 bg-slate-200 hover:bg-slate-300 active:scale-[0.98] text-slate-800 font-bold rounded-2xl text-sm transition flex items-center justify-center gap-1.5">
+                        <span>🔄</span> ถ่ายรูปใหม่
+                    </button>
+                    <button type="button" id="btnSavePhoto" onclick="saveWatermarkedPhoto()"
+                            class="sm:col-span-2 py-4 px-5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/25 text-base transition flex items-center justify-center gap-2">
+                        <span>💾</span> บันทึกรูปลงเครื่อง
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center text-xs text-amber-900/70 font-medium pt-1">
+            🍩 Donut Shop BC6 • ข้อมูลทั้งหมดบันทึกอัตโนมัติในเบราว์เซอร์ของคุณ
+        </footer>
+
     </div>
 
     <script>
         /* =====================================================================
-           1. DOM REFERENCES & STORAGE KEY
+           1. STATE, CONSTANTS & DOM REFERENCES
         ===================================================================== */
-        const STORAGE_KEY = 'donut_bc6_report_state_v2';
+        const STORAGE_KEY = 'donut_bc6_report_state_v3';
+        const WATERMARK_PREF_KEY = 'donut_bc6_watermark_show_time';
 
         const inputs = {
             date: document.getElementById('dateInput'),
@@ -426,20 +437,28 @@
         const outputReport = document.getElementById('outputReport');
         const copyBtn = document.getElementById('copyBtn');
 
-        // Camera & Watermark DOM elements
+        // Camera & Watermark Elements
         const cameraInput = document.getElementById('cameraInput');
+        const galleryInput = document.getElementById('galleryInput');
         const watermarkCanvas = document.getElementById('watermarkCanvas');
         const photoPreview = document.getElementById('photoPreview');
         const previewContainer = document.getElementById('previewContainer');
         const photoLoading = document.getElementById('photoLoading');
         const photoMetaBadge = document.getElementById('photoMetaBadge');
         const btnSavePhoto = document.getElementById('btnSavePhoto');
+        const modeWithTimeBtn = document.getElementById('modeWithTimeBtn');
+        const modeNoTimeBtn = document.getElementById('modeNoTimeBtn');
+        const modeHintText = document.getElementById('modeHintText');
 
-        let currentPreviewObjectUrl = null;
+        // Photo Watermark State (Retains original full-res image & timestamp for instant re-render)
+        let showDateTimeOnWatermark = true;
+        let currentSourceImage = null;
+        let currentCapturedAt = null;
         let currentWatermarkedBlob = null;
+        let currentPreviewObjectUrl = null;
 
         /* =====================================================================
-           2. TOAST & CUSTOM MODAL HELPERS (No native alert/confirm)
+           2. TOAST & CUSTOM MODAL HELPERS (No native alert() / confirm())
         ===================================================================== */
         let toastTimer = null;
         function showToast(message) {
@@ -452,7 +471,7 @@
             toastTimer = setTimeout(() => {
                 toast.classList.remove('translate-y-0', 'opacity-100');
                 toast.classList.add('-translate-y-32', 'opacity-0');
-            }, 2400);
+            }, 2500);
         }
 
         let modalOnConfirm = null;
@@ -474,9 +493,9 @@
 
         document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
         document.getElementById('modalConfirmBtn').addEventListener('click', () => {
-            const cb = modalOnConfirm;
+            const callback = modalOnConfirm;
             closeModal();
-            if (typeof cb === 'function') cb();
+            if (typeof callback === 'function') callback();
         });
         modalOverlay.addEventListener('click', (e) => {
             if (e.target === modalOverlay) closeModal();
@@ -485,8 +504,8 @@
         /* =====================================================================
            3. MATH & FORMATTING UTILITIES
         ===================================================================== */
-        function pad2(n) {
-            return String(n).padStart(2, '0');
+        function pad2(num) {
+            return String(num).padStart(2, '0');
         }
 
         function getTodayISO() {
@@ -494,15 +513,15 @@
             return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
         }
 
-        // Safely evaluates "+" separated numbers (e.g., "6246+1213+1094")
+        // Safely evaluates "+" math expressions like "6246+1213+1094"
         function parseMathString(raw) {
             if (raw === null || raw === undefined) return 0;
             try {
                 const cleaned = String(raw).replace(/,/g, '').trim();
                 if (!cleaned) return 0;
                 return cleaned.split('+').reduce((sum, part) => {
-                    const num = parseFloat(part.trim());
-                    return sum + (Number.isFinite(num) ? num : 0);
+                    const val = parseFloat(part.trim());
+                    return sum + (Number.isFinite(val) ? val : 0);
                 }, 0);
             } catch (err) {
                 return 0;
@@ -518,10 +537,10 @@
         }
 
         /* =====================================================================
-           4. CORE SALES REPORT CALCULATION ENGINE
+           4. REAL-TIME SALES REPORT CALCULATION ENGINE
         ===================================================================== */
         function calculate() {
-            // 1. Date formatted as DD/MM/YY
+            // Format Date as DD/MM/YY
             let formattedDate = '';
             if (inputs.date.value) {
                 const parts = inputs.date.value.split('-');
@@ -530,7 +549,7 @@
                 }
             }
 
-            // 2. Sales & Sale Food (Gross -> Net / 1.07)
+            // Sales & Sale Food (Gross -> Net / 1.07)
             const hasSales = inputs.sales.value.trim() !== '';
             const salesGross = parseMathString(inputs.sales.value);
             const salesNet = salesGross > 0 ? salesGross / 1.07 : 0;
@@ -543,11 +562,10 @@
             const hasTa = inputs.ta.value.trim() !== '';
             const ta = parseFloat(inputs.ta.value) || 0;
 
-            // Update live Net badges
             document.getElementById('salesNetBadge').innerText = `${formatNumber(salesNet, 2)} ฿`;
             document.getElementById('foodNetBadge').innerText = `${formatNumber(foodNet, 2)} ฿`;
 
-            // 3. Staffing & Labor Cost (FT = 450, PT = 47/hr)
+            // Staffing & Labor Cost (FT = 450, PT = 47/hr)
             const ftCount = parseFloat(inputs.ft.value) || 0;
             const ptCount = parseFloat(inputs.ptCount.value) || 0;
             const ptHours = parseFloat(inputs.ptHours.value) || 0;
@@ -561,7 +579,7 @@
             document.getElementById('colPercentBadge').innerText = `${formatNumber(colPercent, 2)}%`;
             document.getElementById('kpiCol').innerText = `${formatNumber(colPercent, 2)}%`;
 
-            // 4. Production & Wastage
+            // Production & Wastage
             const produced = inputs.produced.value.trim();
             const twPc = inputs.twPc.value.trim();
             const hasTwBaht = inputs.twBaht.value.trim() !== '';
@@ -570,7 +588,7 @@
 
             document.getElementById('twPercentBadge').innerText = `${formatNumber(twPercent, 2)}%`;
 
-            // 5. MTD Tracking
+            // MTD Tracking
             const hasMtdSf = inputs.mtdSf.value.trim() !== '';
             const mtdSfRaw = parseMathString(inputs.mtdSf.value);
             const mtdSfNet = mtdSfRaw > 0 ? mtdSfRaw / 1.07 : 0;
@@ -586,7 +604,7 @@
             document.getElementById('mtdTwPercentBadge').innerText = `${formatNumber(mtdTwPercent, 2)}%`;
             document.getElementById('kpiMtdTw').innerText = `${formatNumber(mtdTwPercent, 2)}%`;
 
-            // 6. Build Exact Chat Report Format
+            // Exact Required Output Format
             const reportText =
 `วันที่ =${formattedDate}
 💰Sales = ${hasSales ? formatNumber(salesGross, 0) : ''} / ${hasSales && salesNet > 0 ? formatNumber(salesNet, 2) : ''}
@@ -611,7 +629,7 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
         }
 
         /* =====================================================================
-           5. COPY, SAMPLE DATA, RESET & ROLLOVER ACTIONS
+           5. REPORT UTILITY ACTIONS (Copy, Sample, Reset, Rollover)
         ===================================================================== */
         let copyBtnTimer = null;
         function copyReport() {
@@ -628,11 +646,10 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
                 }
             }
 
-            // Visual button feedback
             copyBtn.innerHTML = '<span>✅</span> คัดลอกเรียบร้อย!';
             copyBtn.classList.remove('from-amber-500', 'to-orange-500', 'hover:from-amber-600', 'hover:to-orange-600');
             copyBtn.classList.add('from-emerald-500', 'to-emerald-600');
-            showToast('คัดลอกรายงานเรียบร้อยแล้ว!');
+            showToast('✅ คัดลอกรายงานเรียบร้อยแล้ว!');
 
             if (copyBtnTimer) clearTimeout(copyBtnTimer);
             copyBtnTimer = setTimeout(() => {
@@ -659,13 +676,13 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
 
             calculate();
             saveToLocalStorage();
-            showToast('โหลดข้อมูลตัวอย่างเรียบร้อย!');
+            showToast('💡 โหลดข้อมูลตัวอย่างเรียบร้อย!');
         }
 
         function confirmReset() {
             showModal(
-                'ล้างข้อมูลรายงาน?',
-                'ต้องการล้างข้อมูลยอดขายประจำวันนี้ใช่หรือไม่? (ยอดสะสม MTD และจำนวนพนักงานเริ่มต้นจะยังคงอยู่)',
+                'ล้างข้อมูลวันนี้?',
+                'ต้องการล้างข้อมูลยอดขายและของเสียของวันนี้ใช่หรือไม่? (ยอดสะสม MTD และจำนวนพนักงานเริ่มต้นจะยังคงอยู่)',
                 () => {
                     inputs.sales.value = '';
                     inputs.food.value = '';
@@ -677,7 +694,7 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
 
                     calculate();
                     saveToLocalStorage();
-                    showToast('ล้างข้อมูลวันนี้เรียบร้อยแล้ว');
+                    showToast('🗑️ ล้างข้อมูลวันนี้เรียบร้อยแล้ว');
                 }
             );
         }
@@ -685,14 +702,13 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
         function confirmRollover() {
             showModal(
                 'ยกยอดสะสม (MTD) ไปวันถัดไป?',
-                'ระบบจะเลื่อนวันที่ไปวันพรุ่งนี้ (+1 วัน) ยกยอด TW/฿ MTD รวมวันนี้ไปเป็นยอดเมื่อวาน และล้างช่องยอดขายประจำวันให้พร้อมกรอกวันใหม่ ต้องการดำเนินการต่อหรือไม่?',
+                'ระบบจะนำยอด TW/฿ MTD รวมวันนี้ไปใส่เป็นยอดของเมื่อวาน เพิ่มวันที่อีก 1 วัน และล้างช่องข้อมูลรายวันให้พร้อมกรอกวันใหม่ ต้องการดำเนินการหรือไม่?',
                 () => {
-                    // Compute current cumulative TW/฿ MTD
                     const twBahtToday = parseFloat(inputs.twBaht.value) || 0;
                     const mtdTwPrev = parseFloat(inputs.mtdTwPrev.value) || 0;
                     const newMtdTwPrev = mtdTwPrev + twBahtToday;
 
-                    // Increment Date by +1 day safely in local time
+                    // Increment date by +1 day
                     if (inputs.date.value) {
                         const [y, m, d] = inputs.date.value.split('-').map(Number);
                         const nextDate = new Date(y, m - 1, d + 1);
@@ -701,7 +717,6 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
                         inputs.date.value = getTodayISO();
                     }
 
-                    // Rollover TW/฿ MTD into previous day's field
                     inputs.mtdTwPrev.value = newMtdTwPrev > 0 ? newMtdTwPrev.toFixed(2) : '';
 
                     // Clear daily fields
@@ -715,7 +730,7 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
 
                     calculate();
                     saveToLocalStorage();
-                    showToast('ยกยอด MTD ไปวันถัดไปเรียบร้อย!');
+                    showToast('⏭️ ยกยอดสะสม MTD ไปวันถัดไปเรียบร้อย!');
                 }
             );
         }
@@ -731,7 +746,7 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
                 });
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             } catch (err) {
-                console.warn('Unable to save to localStorage:', err);
+                console.warn('localStorage save error:', err);
             }
         }
 
@@ -746,15 +761,67 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
                     }
                 });
             } catch (err) {
-                console.warn('Unable to load from localStorage:', err);
+                console.warn('localStorage load error:', err);
             }
         }
 
         /* =====================================================================
-           7. NATIVE CAMERA + FULL-RES BOTTOM WHITE STRIP WATERMARK (BC6 + TIME)
+           7. CAMERA, WATERMARK MODE TOGGLE & REAL-TIME CANVAS RENDERER
         ===================================================================== */
+        function updateWatermarkModeUI() {
+            const activeClasses = ['bg-amber-600', 'text-white', 'shadow-md'];
+            const inactiveClasses = ['bg-transparent', 'text-amber-900', 'hover:bg-amber-200/70'];
+
+            if (showDateTimeOnWatermark) {
+                modeWithTimeBtn.classList.add(...activeClasses);
+                modeWithTimeBtn.classList.remove(...inactiveClasses);
+                modeNoTimeBtn.classList.remove(...activeClasses);
+                modeNoTimeBtn.classList.add(...inactiveClasses);
+                modeHintText.innerHTML = 'แถบสีขาวด้านล่างจะแสดง <strong class="text-slate-800">BC6</strong> (ชิดซ้าย) และ <strong class="text-slate-800">วันที่-เวลาที่ถ่าย</strong> (ชิดขวา) — เปลี่ยนโหมดได้ทันทีแม้ถ่ายรูปไปแล้ว';
+            } else {
+                modeNoTimeBtn.classList.add(...activeClasses);
+                modeNoTimeBtn.classList.remove(...inactiveClasses);
+                modeWithTimeBtn.classList.remove(...activeClasses);
+                modeWithTimeBtn.classList.add(...inactiveClasses);
+                modeHintText.innerHTML = 'แถบสีขาวด้านล่างจะแสดงเฉพาะคำว่า <strong class="text-slate-800">BC6</strong> ตัวใหญ่สีดำกึ่งกลาง (ไม่แสดงวันที่และเวลา)';
+            }
+        }
+
+        function setWatermarkMode(showTime) {
+            showDateTimeOnWatermark = Boolean(showTime);
+            try {
+                localStorage.setItem(WATERMARK_PREF_KEY, showDateTimeOnWatermark ? '1' : '0');
+            } catch (err) {
+                console.warn('Unable to save watermark preference:', err);
+            }
+
+            updateWatermarkModeUI();
+
+            // Immediately re-render canvas preview if a photo is already loaded
+            if (currentSourceImage) {
+                renderWatermarkedCanvas(false);
+                showToast(showDateTimeOnWatermark ? '🕒 สลับเป็น: แสดงวันที่และเวลาแล้ว' : '🏷️ สลับเป็น: เฉพาะ BC6 (ไม่แสดงเวลา) แล้ว');
+            }
+        }
+
+        function loadWatermarkModePref() {
+            try {
+                const pref = localStorage.getItem(WATERMARK_PREF_KEY);
+                if (pref !== null) {
+                    showDateTimeOnWatermark = pref === '1';
+                }
+            } catch (err) {
+                showDateTimeOnWatermark = true;
+            }
+            updateWatermarkModeUI();
+        }
+
         function triggerNativeCamera() {
             cameraInput.click();
+        }
+
+        function triggerGalleryPicker() {
+            galleryInput.click();
         }
 
         function formatCaptureDateTime(dateObj) {
@@ -767,10 +834,7 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
             return `${dd}/${mm}/${yyyy}  ${hh}:${min}:${ss}`;
         }
 
-        cameraInput.addEventListener('change', (event) => {
-            const file = event.target.files && event.target.files[0];
-            // Reset input immediately so consecutive photos always trigger change event
-            cameraInput.value = '';
+        function handlePhotoSelection(file) {
             if (!file) return;
 
             const capturedAt = new Date();
@@ -780,43 +844,76 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
             const img = new Image();
 
             img.onload = () => {
-                try {
-                    const imgW = img.naturalWidth || img.width;
-                    const imgH = img.naturalHeight || img.height;
+                URL.revokeObjectURL(sourceUrl);
+                currentSourceImage = img;
+                currentCapturedAt = capturedAt;
+                renderWatermarkedCanvas(true);
+            };
 
-                    // Proportional white bottom strip (approx 9%-11% of base dimension, balanced for portrait & landscape)
-                    const baseDim = Math.min(imgW, imgH);
-                    const stripHeight = Math.round(Math.min(Math.max(baseDim * 0.11, 88), 420));
+            img.onerror = () => {
+                URL.revokeObjectURL(sourceUrl);
+                photoLoading.classList.add('hidden');
+                showToast('❌ ไม่สามารถอ่านไฟล์รูปภาพได้ กรุณาลองใหม่');
+            };
 
-                    // Set canvas to full native resolution + separate bottom strip
-                    watermarkCanvas.width = imgW;
-                    watermarkCanvas.height = imgH + stripHeight;
+            img.src = sourceUrl;
+        }
 
-                    const ctx = watermarkCanvas.getContext('2d');
+        cameraInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            cameraInput.value = '';
+            handlePhotoSelection(file);
+        });
 
-                    // 1. Draw original photo untouched at full resolution on top
-                    ctx.drawImage(img, 0, 0, imgW, imgH);
+        galleryInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            galleryInput.value = '';
+            handlePhotoSelection(file);
+        });
 
-                    // 2. Draw solid white rectangular strip strictly below the photo
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.fillRect(0, imgH, imgW, stripHeight);
+        // Renders the full-resolution image + non-overlapping bottom white bar onto canvas
+        function renderWatermarkedCanvas(showReadyToast = true) {
+            if (!currentSourceImage) return;
 
-                    // 3. Draw crisp black text: "BC6" (left) & "DD/MM/YYYY  HH:mm:ss" (right)
+            try {
+                const img = currentSourceImage;
+                const imgW = img.naturalWidth || img.width;
+                const imgH = img.naturalHeight || img.height;
+
+                // Proportional solid white bar height (~11% of base dimension, crisp on high-res mobile photos)
+                const baseDim = Math.min(imgW, imgH);
+                const stripHeight = Math.round(Math.min(Math.max(baseDim * 0.11, 88), 440));
+
+                watermarkCanvas.width = imgW;
+                watermarkCanvas.height = imgH + stripHeight;
+
+                const ctx = watermarkCanvas.getContext('2d');
+
+                // 1. Draw original full-resolution photo untouched on top
+                ctx.drawImage(img, 0, 0, imgW, imgH);
+
+                // 2. Draw solid white rectangular bar strictly below the original photo
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, imgH, imgW, stripHeight);
+
+                const centerY = imgH + (stripHeight / 2);
+                ctx.fillStyle = '#000000';
+                ctx.textBaseline = 'middle';
+
+                if (showDateTimeOnWatermark) {
+                    // Mode A: BC6 aligned left, Captured Date & Time aligned right
                     const branchLabel = 'BC6';
-                    const dateTimeLabel = formatCaptureDateTime(capturedAt);
-
+                    const dateTimeLabel = formatCaptureDateTime(currentCapturedAt || new Date());
                     const padX = Math.round(imgW * 0.04);
-                    const centerY = imgH + (stripHeight / 2);
 
                     let branchFontSize = Math.round(stripHeight * 0.56);
                     let dateFontSize = Math.round(stripHeight * 0.36);
 
-                    // Auto-fit font sizes if the image is unusually narrow so texts never overlap
+                    // Auto-scale fonts if image is narrow so text never collides
                     ctx.font = `800 ${branchFontSize}px Inter, Sarabun, sans-serif`;
-                    let branchWidth = ctx.measureText(branchLabel).width;
-
-                    ctx.font = `600 ${dateFontSize}px Inter, Sarabun, sans-serif`;
-                    let dateWidth = ctx.measureText(dateTimeLabel).width;
+                    const branchWidth = ctx.measureText(branchLabel).width;
+                    ctx.font = `700 ${dateFontSize}px Inter, Sarabun, sans-serif`;
+                    const dateWidth = ctx.measureText(dateTimeLabel).width;
 
                     const maxContentWidth = imgW - (padX * 3);
                     if (branchWidth + dateWidth > maxContentWidth && maxContentWidth > 0) {
@@ -825,63 +922,56 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
                         dateFontSize = Math.max(14, Math.floor(dateFontSize * scale));
                     }
 
-                    ctx.fillStyle = '#000000';
-                    ctx.textBaseline = 'middle';
-
-                    // Left: BC6
                     ctx.textAlign = 'left';
                     ctx.font = `800 ${branchFontSize}px Inter, Sarabun, sans-serif`;
                     ctx.fillText(branchLabel, padX, centerY);
 
-                    // Right: Capture Date & Time
                     ctx.textAlign = 'right';
-                    ctx.font = `600 ${dateFontSize}px Inter, Sarabun, sans-serif`;
+                    ctx.font = `700 ${dateFontSize}px Inter, Sarabun, sans-serif`;
                     ctx.fillText(dateTimeLabel, imgW - padX, centerY);
-
-                    // Convert canvas to high-quality JPEG Blob (0.95)
-                    watermarkCanvas.toBlob((blob) => {
-                        URL.revokeObjectURL(sourceUrl);
-                        photoLoading.classList.add('hidden');
-
-                        if (!blob) {
-                            showToast('ไม่สามารถสร้างไฟล์รูปภาพได้ กรุณาลองใหม่');
-                            return;
-                        }
-
-                        currentWatermarkedBlob = blob;
-
-                        if (currentPreviewObjectUrl) {
-                            URL.revokeObjectURL(currentPreviewObjectUrl);
-                        }
-                        currentPreviewObjectUrl = URL.createObjectURL(blob);
-                        photoPreview.src = currentPreviewObjectUrl;
-
-                        photoMetaBadge.innerText = `${imgW}×${imgH + stripHeight}px`;
-                        previewContainer.classList.remove('hidden');
-                        showToast('ฝังแถบ BC6 และเวลาเรียบร้อย!');
-                    }, 'image/jpeg', 0.95);
-                } catch (err) {
-                    URL.revokeObjectURL(sourceUrl);
-                    photoLoading.classList.add('hidden');
-                    console.error('Watermark rendering failed:', err);
-                    showToast('เกิดข้อผิดพลาดในการประมวลผลภาพ');
+                } else {
+                    // Mode B: Bold black "BC6" centered horizontally and vertically
+                    const branchFontSize = Math.round(stripHeight * 0.62);
+                    ctx.textAlign = 'center';
+                    ctx.font = `800 ${branchFontSize}px Inter, Sarabun, sans-serif`;
+                    ctx.fillText('BC6', imgW / 2, centerY);
                 }
-            };
 
-            img.onerror = () => {
-                URL.revokeObjectURL(sourceUrl);
+                // Export high-quality JPEG (0.95) for preview & saving
+                watermarkCanvas.toBlob((blob) => {
+                    photoLoading.classList.add('hidden');
+                    if (!blob) {
+                        showToast('❌ ไม่สามารถสร้างไฟล์รูปภาพได้');
+                        return;
+                    }
+
+                    currentWatermarkedBlob = blob;
+
+                    if (currentPreviewObjectUrl) {
+                        URL.revokeObjectURL(currentPreviewObjectUrl);
+                    }
+                    currentPreviewObjectUrl = URL.createObjectURL(blob);
+                    photoPreview.src = currentPreviewObjectUrl;
+
+                    photoMetaBadge.innerText = `${imgW}×${imgH + stripHeight}px`;
+                    previewContainer.classList.remove('hidden');
+
+                    if (showReadyToast) {
+                        showToast('✅ ประมวลผลรูปลายนํ้า BC6 เรียบร้อย!');
+                    }
+                }, 'image/jpeg', 0.95);
+            } catch (err) {
                 photoLoading.classList.add('hidden');
-                showToast('ไม่สามารถอ่านไฟล์รูปภาพได้');
-            };
+                console.error('Canvas watermark error:', err);
+                showToast('❌ เกิดข้อผิดพลาดในการสร้างลายน้ำ');
+            }
+        }
 
-            img.src = sourceUrl;
-        });
-
-        // Save photo with a 100% unique filename every click to prevent "Download again?" prompts
+        // Download with guaranteed unique filename every click (prevents "Download again?" prompts)
         let saveBtnTimer = null;
         function saveWatermarkedPhoto() {
             if (!currentWatermarkedBlob) {
-                showToast('กรุณาถ่ายรูปก่อนบันทึก');
+                showToast('กรุณาถ่ายรูปหรือเลือกรูปก่อนบันทึก');
                 return;
             }
 
@@ -893,29 +983,27 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
             const min = pad2(now.getMinutes());
             const ss = pad2(now.getSeconds());
             const ms = String(now.getMilliseconds()).padStart(3, '0');
-            const rand = Math.floor(10 + Math.random() * 90);
+            const rand4 = String(Math.floor(1000 + Math.random() * 9000));
 
-            const uniqueFilename = `BC6_${yyyy}${mm}${dd}_${hh}${min}${ss}_${ms}${rand}.jpg`;
+            const uniqueFilename = `BC6_${yyyy}${mm}${dd}_${hh}${min}${ss}_${ms}_${rand4}.jpg`;
 
             const downloadUrl = URL.createObjectURL(currentWatermarkedBlob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = uniqueFilename;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = uniqueFilename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
 
-            // Clean up object URL after browser initiates the download
             setTimeout(() => {
                 URL.revokeObjectURL(downloadUrl);
             }, 5000);
 
-            // Instant visual feedback on Save button
-            btnSavePhoto.innerHTML = '<span>✅</span> บันทึกรูปเรียบร้อย!';
+            btnSavePhoto.innerHTML = '<span>✅</span> บันทึกรูปลงเครื่องแล้ว';
             btnSavePhoto.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
             btnSavePhoto.classList.add('bg-teal-600');
-            showToast(`บันทึกรูป ${uniqueFilename} แล้ว!`);
+            showToast('✅ บันทึกรูปลงเครื่องแล้ว');
 
             if (saveBtnTimer) clearTimeout(saveBtnTimer);
             saveBtnTimer = setTimeout(() => {
@@ -929,13 +1017,15 @@ TW (%) MTD=${mtdSfNet > 0 && hasMtdTwTotal ? formatNumber(mtdTwPercent, 2) : ''}
            8. INITIALIZATION
         ===================================================================== */
         document.addEventListener('DOMContentLoaded', () => {
-            // Restore saved values first, then ensure date defaults to today if empty
             loadFromLocalStorage();
+            loadWatermarkModePref();
+
+            // Default date picker to today if not previously set
             if (!inputs.date.value) {
                 inputs.date.value = getTodayISO();
             }
 
-            // Attach real-time calculation & auto-save listeners
+            // Bind real-time calculations & auto-save
             Object.values(inputs).forEach((el) => {
                 el.addEventListener('input', () => {
                     calculate();
